@@ -1,0 +1,157 @@
+import { DifficultyLevel, Stage } from '../types/game';
+import { BOSS_ENEMIES, COMMON_ENEMIES } from './enemies';
+
+export const DIFFICULTY_THRESHOLDS: Record<DifficultyLevel, number> = {
+  easy: 0,
+  medium: 800,
+  hard: 2500,
+};
+
+export const STAGES_BY_DIFFICULTY: Record<DifficultyLevel, Stage[]> = {
+  easy: [
+    {
+      id: 1,
+      name: 'Whispering Woods',
+      biome: 'forest',
+      description: 'Lush green groves where wandering scouts and hungry slimes lie in ambush.',
+      bgColors: {
+        skyTop: '#071a2f',
+        skyBottom: '#155e75',
+        farMountain: '#102a43',
+        midLandscape: '#14532d',
+        ground: '#166534',
+        path: '#713f12',
+      },
+      encounters: [
+        COMMON_ENEMIES.dark_slime,
+        COMMON_ENEMIES.goblin_scout,
+        COMMON_ENEMIES.forest_wolf,
+        BOSS_ENEMIES.boss_ogre,
+      ],
+    },
+    {
+      id: 2,
+      name: 'Outlaw Ridge',
+      biome: 'ruins',
+      description: 'Rocky hills infested with bandit scouts and opportunistic raiders.',
+      bgColors: {
+        skyTop: '#172554',
+        skyBottom: '#3730a3',
+        farMountain: '#1e293b',
+        midLandscape: '#334155',
+        ground: '#475569',
+        path: '#57534e',
+      },
+      encounters: [
+        COMMON_ENEMIES.bandit_rogue,
+        COMMON_ENEMIES.forest_wolf,
+        COMMON_ENEMIES.goblin_scout,
+        BOSS_ENEMIES.boss_ogre,
+      ],
+    },
+    {
+      id: 3,
+      name: 'Forgotten Crypts',
+      biome: 'crypt',
+      description: 'Ancient underground tombs where restless skeleton warriors guard secret treasures.',
+      bgColors: {
+        skyTop: '#020617',
+        skyBottom: '#312e81',
+        farMountain: '#111827',
+        midLandscape: '#1e1b4b',
+        ground: '#1e293b',
+        path: '#334155',
+      },
+      encounters: [
+        COMMON_ENEMIES.skeleton_warrior,
+        COMMON_ENEMIES.dark_slime,
+        COMMON_ENEMIES.skeleton_warrior,
+        BOSS_ENEMIES.boss_deathknight,
+      ],
+    },
+  ],
+  medium: [
+    {
+      id: 1,
+      name: 'Crimson Caldera',
+      biome: 'volcano',
+      description: 'Scorched basalt crags bathed in volcanic glow and guarded by fierce beasts.',
+      bgColors: {
+        skyTop: '#1c0505',
+        skyBottom: '#991b1b',
+        farMountain: '#7c2d12',
+        midLandscape: '#b91c1c',
+        ground: '#431407',
+        path: '#c2410c',
+      },
+      encounters: [
+        COMMON_ENEMIES.mountain_harpy,
+        COMMON_ENEMIES.stone_golem,
+        COMMON_ENEMIES.bandit_rogue,
+        BOSS_ENEMIES.boss_dragon,
+      ],
+    },
+    {
+      id: 2,
+      name: 'Titan’s Quarry',
+      biome: 'ruins',
+      description: 'Ancient stone monoliths protected by enchanted runic golems.',
+      bgColors: {
+        skyTop: '#09090b',
+        skyBottom: '#3f3f46',
+        farMountain: '#27272a',
+        midLandscape: '#52525b',
+        ground: '#27272a',
+        path: '#71717a',
+      },
+      encounters: [
+        COMMON_ENEMIES.stone_golem,
+        COMMON_ENEMIES.mountain_harpy,
+        COMMON_ENEMIES.skeleton_warrior,
+        BOSS_ENEMIES.boss_deathknight,
+      ],
+    },
+  ],
+  hard: [
+    {
+      id: 1,
+      name: 'Abyssal Chasm',
+      biome: 'crypt',
+      description: 'A terrifying void where ancient cosmic terrors challenge the boundaries of reality.',
+      bgColors: {
+        skyTop: '#02000a',
+        skyBottom: '#3b0764',
+        farMountain: '#240046',
+        midLandscape: '#581c87',
+        ground: '#170b2f',
+        path: '#7e22ce',
+      },
+      encounters: [
+        COMMON_ENEMIES.stone_golem,
+        COMMON_ENEMIES.mountain_harpy,
+        COMMON_ENEMIES.skeleton_warrior,
+        BOSS_ENEMIES.boss_wyrm,
+      ],
+    },
+    {
+      id: 2,
+      name: 'Citadel of the Wordbinder',
+      biome: 'citadel',
+      description: 'The celestial fortress crowning the realm where Archon Vexalor reigns supreme.',
+      bgColors: {
+        skyTop: '#09052f',
+        skyBottom: '#4338ca',
+        farMountain: '#4c1d95',
+        midLandscape: '#7e22ce',
+        ground: '#2e1065',
+        path: '#c026d3',
+      },
+      encounters: [
+        COMMON_ENEMIES.stone_golem,
+        COMMON_ENEMIES.mountain_harpy,
+        BOSS_ENEMIES.boss_dragon,
+        BOSS_ENEMIES.boss_overlord,
+      ],
+    },
+  ],
+};
