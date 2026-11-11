@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
-import { CombatState } from '../../types/game';
+import { CombatState, LetterTile } from '../../types/game';
 import { WordleGrid } from './WordleGrid';
 import { RuneLetterPool } from './RuneLetterPool';
 import { Swords, AlertCircle, Heart } from 'lucide-react';
 
 interface CombatOverlayProps {
   combatState: CombatState;
-  onChar: (char: string) => void;
+  onChar: (char: string, tile?: LetterTile) => void;
   onEnter: () => void;
   onBackspace: () => void;
   onClear: () => void;
@@ -103,6 +103,19 @@ export const CombatOverlay: React.FC<CombatOverlayProps> = ({
             </span>
           </div>
         </div>
+
+        {/* Boss Runic Modifier Header Badge */}
+        {combatState.enemy.type === 'boss' && combatState.enemy.bossModifier && (
+          <div className="w-full flex items-center justify-between px-2.5 py-1 bg-red-950/80 border border-amber-500/50 rounded text-[8px] sm:text-[9px] font-pixel shadow-[0_0_8px_rgba(245,158,11,0.25)]">
+            <span className="text-amber-400 font-bold flex items-center gap-1 shrink-0">
+              <span>{combatState.enemy.bossModifier.icon}</span>
+              <span>{combatState.enemy.bossModifier.badge}</span>
+            </span>
+            <span className="text-gray-300 text-[8px] truncate ml-1 sm:ml-2">
+              {combatState.enemy.bossModifier.description}
+            </span>
+          </div>
+        )}
 
         {/* Invalid word / alert message */}
         {invalidMessage && (

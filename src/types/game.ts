@@ -44,13 +44,28 @@ export interface PlayerProfile {
 
 export type EnemyType = 'minion' | 'bandit' | 'boss';
 
+export type BossModifierType =
+  | 'frenzy'
+  | 'scorched'
+  | 'soul_leech'
+  | 'astral_rune'
+  | 'barrier';
+
+export interface BossModifier {
+  type: BossModifierType;
+  name: string;
+  badge: string;
+  description: string;
+  icon: string;
+}
+
 export interface Enemy {
   id: string;
   name: string;
   title: string;
   type: EnemyType;
   maxHp: number;
-  attack: number; // 50 damage for all enemies and bosses
+  attack: number; // 50 damage base for all enemies and bosses
   spriteType: 
     | 'goblin' 
     | 'bandit' 
@@ -67,6 +82,7 @@ export interface Enemy {
   colorTheme: string;
   dialogue: string;
   pointMultiplier: number;
+  bossModifier?: BossModifier;
 }
 
 export interface Stage {
@@ -97,6 +113,8 @@ export interface LetterTile {
   letter: string;
   isUsed: boolean;
   state?: LetterState;
+  isScorched?: boolean;
+  isAstral?: boolean;
 }
 
 export type CombatStatus = 'idle' | 'guessing' | 'evaluating' | 'victory' | 'defeat';
@@ -125,4 +143,7 @@ export interface CombatState {
   } | null;
   earnedPoints: number;
   maxChances: number; // 4 rows
+  bossEnrageBonus?: number;
+  scorchedTileId?: string;
+  astralTileId?: string;
 }

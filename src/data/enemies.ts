@@ -99,6 +99,13 @@ export const BOSS_ENEMIES: Record<string, Enemy> = {
     colorTheme: '#ef4444',
     dialogue: 'PUNY KNIGHT! MY WARCLUB SHALL FLATTEN YOUR ARMOR INTO SOUP CANS!',
     pointMultiplier: 2.0,
+    bossModifier: {
+      type: 'frenzy',
+      name: 'Brutal Frenzy',
+      badge: '💥 BRUTAL FRENZY',
+      description: 'Missed attacks enrage Gorgok (+10 ATK per miss!)',
+      icon: '💥',
+    },
   },
   boss_dragon: {
     id: 'boss_dragon',
@@ -111,6 +118,13 @@ export const BOSS_ENEMIES: Record<string, Enemy> = {
     colorTheme: '#f97316',
     dialogue: 'Mortal ash... you dare tread into the domain of the Everburning Flame?!',
     pointMultiplier: 2.5,
+    bossModifier: {
+      type: 'scorched',
+      name: 'Cinder Brand',
+      badge: '🔥 CINDER BRAND',
+      description: '1 distractor rune is scorched with dragonfire (-10 HP if tapped!)',
+      icon: '🔥',
+    },
   },
   boss_deathknight: {
     id: 'boss_deathknight',
@@ -123,6 +137,13 @@ export const BOSS_ENEMIES: Record<string, Enemy> = {
     colorTheme: '#a855f7',
     dialogue: 'I was once a champion of the light like you. Now, witness true dominion!',
     pointMultiplier: 3.0,
+    bossModifier: {
+      type: 'soul_leech',
+      name: 'Soul Leech',
+      badge: '💀 SOUL LEECH',
+      description: 'Counters steal +25 HP back to Malakor!',
+      icon: '💀',
+    },
   },
   boss_wyrm: {
     id: 'boss_wyrm',
@@ -135,6 +156,13 @@ export const BOSS_ENEMIES: Record<string, Enemy> = {
     colorTheme: '#06b6d4',
     dialogue: 'Your words are fragile echoes in an infinite, starless abyss...',
     pointMultiplier: 3.2,
+    bossModifier: {
+      type: 'astral_rune',
+      name: 'Astral Surge',
+      badge: '🌌 ASTRAL SURGE',
+      description: '1 rune is celestial (deals x2 damage if green!)',
+      icon: '🌌',
+    },
   },
   boss_overlord: {
     id: 'boss_overlord',
@@ -147,5 +175,12 @@ export const BOSS_ENEMIES: Record<string, Enemy> = {
     colorTheme: '#ec4899',
     dialogue: 'At last, a warrior worthy of the Grand Lexicon. Prove your mastery!',
     pointMultiplier: 3.5,
+    bossModifier: {
+      type: 'barrier',
+      name: 'Grand Lexicon Barrier',
+      badge: '👑 LEXICON BARRIER',
+      description: 'Requires 3+ GREEN tiles to pierce his divine ward!',
+      icon: '👑',
+    },
   },
 };

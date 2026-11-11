@@ -392,9 +392,87 @@ class SoundEngine {
     noise.start(now + 0.3);
   }
 
-  // --- Chiptune Looping BGM ---
+  // --- Boss Runic SFX ---
 
-  public startBgm(mode: 'explore' | 'combat' = 'explore') {
+  public playBurn() {
+    if (this.sfxMuted) return;
+    const ctx = this.initCtx();
+    if (!ctx) return;
+
+    // Sizzling fire crackle
+    const bufferSize = ctx.sampleRate * 0.25;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.08));
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(2400, ctx.currentTime);
+    filter.Q.setValueAtTime(3, ctx.currentTime);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.35, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain || ctx.destination);
+    noise.start();
+  }
+
+  public playAstralCrit() {
+    if (this.sfxMuted) return;
+    const ctx = this.initCtx();
+    if (!ctx) return;
+
+    // High sparkling celestial chime
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.05);
+
+      gain.gain.setValueAtTime(0.2, ctx.currentTime + idx * 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.05 + 0.3);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain || ctx.destination);
+      osc.start(ctx.currentTime + idx * 0.05);
+      osc.stop(ctx.currentTime + idx * 0.05 + 0.3);
+    });
+  }
+
+  public playBarrierBlock() {
+    if (this.sfxMuted) return;
+    const ctx = this.initCtx();
+    if (!ctx) return;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.35);
+
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain || ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+  }
+
+  // --- Dynamic 8-Bit Multi-Voice Chiptune Looping BGM ---
+
+  public startBgm(mode: 'explore' | 'combat' | 'boss' = 'explore', isLowHp = false) {
     if (this.bgmMuted) return;
     this.stopBgm();
 
@@ -402,48 +480,118 @@ class SoundEngine {
     if (!ctx) return;
 
     this.isBgmPlaying = true;
-    const tempo = mode === 'combat' ? 140 : 105;
-    const beatMs = (60 / tempo) * 1000;
+    let tempo = 105;
+    if (mode === 'combat') tempo = 136;
+    if (mode === 'boss') tempo = 152;
+    if (isLowHp) tempo += 12; // Extra urgency when low on HP
 
-    // Bassline and arpeggios pattern
-    const exploreMelody = [
-      261.63, 329.63, 392.00, 523.25,
-      220.00, 261.63, 329.63, 440.00,
-      174.61, 220.00, 261.63, 349.23,
-      196.00, 246.94, 293.66, 392.00,
+    const stepMs = ((60 / tempo) * 1000) / 2;
+
+    // Explore: Peaceful major arpeggios & walking groove
+    const exploreLead = [
+      261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 261.63, 329.63,
+      220.00, 261.63, 329.63, 440.00, 329.63, 261.63, 220.00, 261.63,
+      174.61, 220.00, 261.63, 349.23, 261.63, 220.00, 174.61, 220.00,
+      196.00, 246.94, 293.66, 392.00, 293.66, 246.94, 196.00, 246.94,
+    ];
+    const exploreBass = [
+      130.81, 130.81, 196.00, 130.81,
+      110.00, 110.00, 164.81, 110.00,
+      87.31, 87.31, 130.81, 87.31,
+      98.00, 98.00, 146.83, 98.00,
     ];
 
-    const combatMelody = [
-      130.81, 130.81, 196.00, 155.56,
-      130.81, 261.63, 233.08, 196.00,
-      116.54, 116.54, 174.61, 138.59,
-      146.83, 146.83, 220.00, 174.61,
+    // Combat: Driving retro minor battle rhythm
+    const combatLead = [
+      220.00, 261.63, 220.00, 329.63, 220.00, 261.63, 293.66, 349.23,
+      329.63, 293.66, 261.63, 220.00, 196.00, 220.00, 246.94, 261.63,
+      220.00, 329.63, 440.00, 392.00, 349.23, 329.63, 293.66, 261.63,
+      246.94, 261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88,
+    ];
+    const combatBass = [
+      110.00, 110.00, 164.81, 110.00, 110.00, 130.81, 164.81, 110.00,
+      98.00, 98.00, 146.83, 98.00, 87.31, 87.31, 130.81, 98.00,
     ];
 
-    const melody = mode === 'combat' ? combatMelody : exploreMelody;
+    // Boss: Dramatic harmonic minor boss anthem
+    const bossLead = [
+      174.61, 207.65, 261.63, 349.23, 329.63, 261.63, 207.65, 174.61,
+      164.81, 196.00, 246.94, 329.63, 311.13, 246.94, 196.00, 164.81,
+      146.83, 174.61, 220.00, 293.66, 277.18, 220.00, 174.61, 146.83,
+      220.00, 277.18, 329.63, 440.00, 415.30, 329.63, 277.18, 220.00,
+    ];
+    const bossBass = [
+      87.31, 174.61, 87.31, 174.61, 82.41, 164.81, 82.41, 164.81,
+      73.42, 146.83, 73.42, 146.83, 110.00, 220.00, 110.00, 220.00,
+    ];
+
+    const leadMelody = mode === 'boss' ? bossLead : mode === 'combat' ? combatLead : exploreLead;
+    const bassMelody = mode === 'boss' ? bossBass : mode === 'combat' ? combatBass : exploreBass;
+
     let step = 0;
 
     this.bgmInterval = window.setInterval(() => {
       if (!this.isBgmPlaying || this.bgmMuted || !this.ctx) return;
+      const now = this.ctx.currentTime;
+      const noteDur = (stepMs / 1000) * 0.85;
 
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
+      // Voice 1: Pulse/Square Melody Lead
+      const leadFreq = leadMelody[step % leadMelody.length];
+      const leadOsc = this.ctx.createOscillator();
+      const leadGain = this.ctx.createGain();
 
-      osc.type = mode === 'combat' ? 'sawtooth' : 'triangle';
-      const freq = melody[step % melody.length];
-      osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+      leadOsc.type = mode === 'boss' ? 'sawtooth' : mode === 'combat' ? 'square' : 'triangle';
+      leadOsc.frequency.setValueAtTime(leadFreq, now);
 
-      gain.gain.setValueAtTime(mode === 'combat' ? 0.08 : 0.06, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + (beatMs / 1000) * 0.9);
+      const leadVol = mode === 'boss' ? 0.07 : mode === 'combat' ? 0.06 : 0.05;
+      leadGain.gain.setValueAtTime(leadVol, now);
+      leadGain.gain.exponentialRampToValueAtTime(0.001, now + noteDur);
 
-      osc.connect(gain);
-      gain.connect(this.masterGain || this.ctx.destination);
+      leadOsc.connect(leadGain);
+      leadGain.connect(this.masterGain || this.ctx.destination);
+      leadOsc.start(now);
+      leadOsc.stop(now + noteDur);
 
-      osc.start();
-      osc.stop(this.ctx.currentTime + (beatMs / 1000) * 0.9);
+      // Voice 2: Bassline (every 2 steps)
+      if (step % 2 === 0) {
+        const bassFreq = bassMelody[(step / 2) % bassMelody.length];
+        const bassOsc = this.ctx.createOscillator();
+        const bassGain = this.ctx.createGain();
+
+        bassOsc.type = mode === 'boss' ? 'triangle' : 'square';
+        bassOsc.frequency.setValueAtTime(bassFreq, now);
+
+        const bassVol = mode === 'boss' ? 0.09 : 0.06;
+        bassGain.gain.setValueAtTime(bassVol, now);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, now + noteDur * 1.6);
+
+        bassOsc.connect(bassGain);
+        bassGain.connect(this.masterGain || this.ctx.destination);
+        bassOsc.start(now);
+        bassOsc.stop(now + noteDur * 1.6);
+      }
+
+      // Voice 3: Subtle 8-Bit Noise Drum (Every beat for combat/boss)
+      if ((mode === 'combat' || mode === 'boss') && step % 2 === 0) {
+        const isSnare = step % 4 === 2;
+        const drumOsc = this.ctx.createOscillator();
+        const drumGain = this.ctx.createGain();
+
+        drumOsc.type = isSnare ? 'triangle' : 'square';
+        drumOsc.frequency.setValueAtTime(isSnare ? 220 : 80, now);
+        drumOsc.frequency.exponentialRampToValueAtTime(30, now + 0.06);
+
+        drumGain.gain.setValueAtTime(isSnare ? 0.04 : 0.05, now);
+        drumGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+        drumOsc.connect(drumGain);
+        drumGain.connect(this.masterGain || this.ctx.destination);
+        drumOsc.start(now);
+        drumOsc.stop(now + 0.06);
+      }
 
       step++;
-    }, beatMs / 2);
+    }, stepMs);
   }
 
   public stopBgm() {

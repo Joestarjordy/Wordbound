@@ -4,6 +4,7 @@ import {
   CombatState,
   DifficultyLevel,
   Enemy,
+  LetterTile,
   PlayerProfile,
   Stage,
   WordEntry,
@@ -189,7 +190,33 @@ export const App: React.FC = () => {
           forcedWord ||
           getRandomWord(profile.currentDifficulty, undefined, solvedWords);
         encounteredWordsRef.current.add(targetWord.word);
+
+      const targetLetters = new Set(targetWord.word.toUpperCase().split(''));
       const letterPool = generateLetterPool(targetWord.word, Math.max(10, targetWord.word.length + 5));
+
+      // Apply boss-specific runic tile modifiers
+      let scorchedTileId: string | undefined;
+      let astralTileId: string | undefined;
+
+      if (enemy.type === 'boss' && enemy.bossModifier) {
+        if (enemy.bossModifier.type === 'scorched') {
+          // Ignis the Dragon: 1 distractor rune is scorched with dragonfire
+          const distractorTiles = letterPool.filter((t) => !targetLetters.has(t.letter));
+          if (distractorTiles.length > 0) {
+            const chosen = distractorTiles[Math.floor(Math.random() * distractorTiles.length)];
+            chosen.isScorched = true;
+            scorchedTileId = chosen.id;
+          }
+        } else if (enemy.bossModifier.type === 'astral_rune') {
+          // Nidhogg Voidwyrm: 1 rune is celestial and deals x2 damage
+          const targetTiles = letterPool.filter((t) => targetLetters.has(t.letter));
+          if (targetTiles.length > 0) {
+            const chosen = targetTiles[Math.floor(Math.random() * targetTiles.length)];
+            chosen.isAstral = true;
+            astralTileId = chosen.id;
+          }
+        }
+      }
 
       setInCombat(true);
       setCutInState(null);
@@ -215,9 +242,12 @@ export const App: React.FC = () => {
         lastDamage: null,
         earnedPoints: 0,
         maxChances: 4, // strictly 4 chances
+        bossEnrageBonus: 0,
+        scorchedTileId,
+        astralTileId,
       });
 
-      soundEngine.startBgm('combat');
+      soundEngine.startBgm(enemy.type === 'boss' ? 'boss' : 'combat');
       spawnFloatingText(`ENCOUNTER: ${enemy.name.toUpperCase()}!`, enemy.colorTheme, true);
     },
     [clearCombatTimers, profile.currentDifficulty, profile.codex, spawnFloatingText]
@@ -259,18 +289,39 @@ export const App: React.FC = () => {
   ]);
 
   // --- Wordle Input Handling ---
-  const handleChar = useCallback((char: string) => {
-    setCombatState((prev) => {
-      if (!prev || prev.status !== 'guessing') return prev;
-      if (prev.currentGuess.length >= prev.targetWord.length) return prev;
+  const handleChar = useCallback(
+    (char: string, tile?: LetterTile) => {
+      // Scorched rune trap recoil (Ignis the Dragon)
+      if (tile?.isScorched) {
+        soundEngine.playBurn();
+        spawnFloatingText('🔥 -10 BURN!', '#f97316', true);
+        setCombatState((prev) => {
+          if (!prev) return prev;
+          const newHp = Math.max(1, prev.knightHp - 10);
+          return {
+            ...prev,
+            knightHp: newHp,
+          };
+        });
+        setKnightState('hurt');
+        scheduleCombatTimer(() => {
+          setKnightState('idle');
+        }, 400);
+      }
 
-      return {
-        ...prev,
-        currentGuess: prev.currentGuess + char.toUpperCase(),
-        invalidMessage: null,
-      };
-    });
-  }, []);
+      setCombatState((prev) => {
+        if (!prev || prev.status !== 'guessing') return prev;
+        if (prev.currentGuess.length >= prev.targetWord.length) return prev;
+
+        return {
+          ...prev,
+          currentGuess: prev.currentGuess + char.toUpperCase(),
+          invalidMessage: null,
+        };
+      });
+    },
+    [scheduleCombatTimer, spawnFloatingText]
+  );
 
   const handleBackspace = useCallback(() => {
     setCombatState((prev) => {
@@ -384,10 +435,15 @@ export const App: React.FC = () => {
     const greenCount = evalResult.filter((e) => e.state === 'correct').length;
     const yellowCount = evalResult.filter((e) => e.state === 'present').length;
 
+    const isBoss = prev.enemy.type === 'boss';
+    const isBarrierBoss = prev.enemy.bossModifier?.type === 'barrier';
+    const minGreensRequired = isBarrierBoss ? 3 : 2;
+
     // If the player misses the full word:
     // - 0 or 1 GREEN ('correct') tile -> Enemy/Boss BLOCKS & counters the Knight's attack (0 DMG)
     // - 2 or 3+ GREEN ('correct') tiles -> Knight's attack works and damages the enemy
-    const isEnemyBlocked = !isCorrect && greenCount <= 1;
+    // - Archon Vexalor (Barrier Boss) requires at least 3 GREEN tiles to pierce!
+    const isEnemyBlocked = !isCorrect && greenCount < minGreensRequired;
 
     let damageDealt = 0;
     if (isCorrect) {
@@ -399,15 +455,43 @@ export const App: React.FC = () => {
         Math.max(0, prev.enemyHp - 1),
         greenCount * 30 + yellowCount * 15
       );
+
+      // Astral rune bonus damage (Nidhogg Voidwyrm)
+      const astralTile = prev.letterPool.find((t) => t.isAstral);
+      if (astralTile && evalResult.some((e) => e.letter === astralTile.letter && e.state === 'correct')) {
+        damageDealt = Math.min(prev.enemyHp - 1, damageDealt * 2);
+        soundEngine.playAstralCrit();
+        scheduleCombatTimer(() => {
+          spawnFloatingText('⭐ ASTRAL CRIT x2!', '#22d3ee', true);
+        }, 320);
+      }
     }
 
-    const nextEnemyHp = isCorrect ? 0 : Math.max(1, prev.enemyHp - damageDealt);
+    let nextEnemyHp = isCorrect ? 0 : Math.max(1, prev.enemyHp - damageDealt);
+
+    // Malakor Soul Leech: counters steal +25 HP back
+    if (isEnemyBlocked && prev.enemy.bossModifier?.type === 'soul_leech') {
+      nextEnemyHp = Math.min(prev.enemyMaxHp, nextEnemyHp + 25);
+      scheduleCombatTimer(() => {
+        spawnFloatingText('💀 +25 SOUL LEECH!', '#a855f7', true);
+      }, 520);
+    }
+
     const isFirstTryUltimate = isCorrect && attemptsUsed === 1;
 
-    const isBoss = prev.enemy.type === 'boss';
-    const knightDamage = prev.enemy.attack ?? 50;
+    // Gorgok Brutal Frenzy (+10 ATK per missed attempt)
+    const enrageBonus = prev.bossEnrageBonus || 0;
+    const knightDamage = (prev.enemy.attack ?? 50) + enrageBonus;
     const hpAfterMiss = Math.max(0, prev.knightHp - knightDamage);
     const isFatalMiss = !isCorrect && (hpAfterMiss <= 0 || attemptsUsed >= prev.maxChances);
+
+    let nextEnrageBonus = enrageBonus;
+    if (!isCorrect && prev.enemy.bossModifier?.type === 'frenzy') {
+      nextEnrageBonus += 10;
+      scheduleCombatTimer(() => {
+        spawnFloatingText('💥 GORGOK ENRAGES! (+10 ATK)', '#ef4444', true);
+      }, 500);
+    }
 
     // Immediately commit the guess submission and enemy HP deduction to combat state
     setCombatState((curr) => {
@@ -423,6 +507,7 @@ export const App: React.FC = () => {
         earnedPoints: isCorrect ? 500 : 0,
         shakeRowIndex: null,
         invalidMessage: null,
+        bossEnrageBonus: nextEnrageBonus,
       };
     });
 
@@ -525,8 +610,13 @@ export const App: React.FC = () => {
     scheduleCombatTimer(() => {
       if (isEnemyBlocked) {
         setEnemyState('block');
-        soundEngine.playBlock();
-        spawnFloatingText('🛡️ BLOCKED! 0 DMG', '#38bdf8', true);
+        if (isBarrierBoss && greenCount === 2) {
+          soundEngine.playBarrierBlock();
+          spawnFloatingText('👑 LEXICON BARRIER BLOCKED!', '#ec4899', true);
+        } else {
+          soundEngine.playBlock();
+          spawnFloatingText('🛡️ BLOCKED! 0 DMG', '#38bdf8', true);
+        }
       } else {
         setEnemyState('hurt');
         soundEngine.playHit();
@@ -601,9 +691,14 @@ export const App: React.FC = () => {
         isBoss ? '#ef4444' : '#38bdf8',
         isBoss
       );
-      setCombatState((curr) =>
-        curr ? { ...curr, knightHp: Math.max(0, curr.knightHp - knightDamage) } : curr
-      );
+      setCombatState((curr) => {
+        if (!curr) return null;
+        const newHp = Math.max(0, curr.knightHp - knightDamage);
+        if (newHp <= 50 && newHp > 0) {
+          soundEngine.startBgm(isBoss ? 'boss' : 'combat', true);
+        }
+        return { ...curr, knightHp: newHp };
+      });
     }, 880);
     scheduleCombatTimer(() => {
       setEnemyState('idle');

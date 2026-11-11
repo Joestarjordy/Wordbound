@@ -7,7 +7,7 @@ interface RuneLetterPoolProps {
   letterPool: LetterTile[];
   keyboardStatus: Record<string, LetterState>;
   evaluations?: GuessEvaluation[][];
-  onSelectLetter: (letter: string) => void;
+  onSelectLetter: (letter: string, tile?: LetterTile) => void;
   onBackspace: () => void;
   onClear: () => void;
   onEnter: () => void;
@@ -26,10 +26,10 @@ export const RuneLetterPool: React.FC<RuneLetterPoolProps> = ({
   disabled = false,
   canSubmit,
 }) => {
-  const handleLetterClick = (letter: string) => {
+  const handleLetterClick = (tile: LetterTile) => {
     if (disabled) return;
     soundEngine.playKeyClick();
-    onSelectLetter(letter);
+    onSelectLetter(tile.letter, tile);
   };
 
   // Track max occurrences of each letter marked 'correct' or 'present' across any guess
@@ -121,10 +121,34 @@ export const RuneLetterPool: React.FC<RuneLetterPoolProps> = ({
               key={`${tile.id}-${idx}`}
               type="button"
               disabled={disabled}
-              onClick={() => handleLetterClick(tile.letter)}
-              className={`flex-1 min-w-0 max-w-[42px] aspect-square p-0 rounded-xs font-pixel text-xs sm:text-sm font-bold border-2 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed ${tileStyle}`}
+              onClick={() => handleLetterClick(tile)}
+              className={`relative flex-1 min-w-0 max-w-[42px] aspect-square p-0 rounded-xs font-pixel text-xs sm:text-sm font-bold border-2 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed ${tileStyle} ${
+                tile.isScorched
+                  ? 'border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.6)] animate-pulse'
+                  : ''
+              } ${
+                tile.isAstral
+                  ? 'border-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.7)] animate-pulse'
+                  : ''
+              }`}
             >
               {tile.letter}
+              {tile.isScorched && (
+                <span
+                  className="absolute -top-1.5 -right-1.5 text-[8px] sm:text-[9px] pointer-events-none drop-shadow-[0_0_4px_#f97316]"
+                  title="Scorched rune! Tapping inflicts fire recoil damage!"
+                >
+                  🔥
+                </span>
+              )}
+              {tile.isAstral && (
+                <span
+                  className="absolute -top-1.5 -right-1.5 text-[8px] sm:text-[9px] pointer-events-none drop-shadow-[0_0_4px_#22d3ee]"
+                  title="Astral rune! Deals x2 damage when cracked!"
+                >
+                  ⭐
+                </span>
+              )}
             </button>
           );
         })}
