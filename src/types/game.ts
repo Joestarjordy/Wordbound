@@ -74,10 +74,20 @@ export interface Enemy {
     | 'golem' 
     | 'wolf'
     | 'harpy'
+    | 'mushroom'
+    | 'imp'
+    | 'mimic'
+    | 'wraith'
+    | 'drake'
+    | 'cultist'
+    | 'boss_treant'
     | 'boss_ogre' 
+    | 'boss_lich'
     | 'boss_dragon' 
+    | 'boss_titan'
     | 'boss_deathknight'
     | 'boss_wyrm'
+    | 'boss_phoenix'
     | 'boss_overlord';
   colorTheme: string;
   dialogue: string;
