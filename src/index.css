@@ -294,6 +294,23 @@
   100% { transform: translate3d(-50%, 0, 0); }
 }
 
+/* Responsive square-pixel seamless parallax sizing (640x180 = 32:9 tile ratio) */
+.realm-track-stage {
+  container-type: size;
+}
+
+.realm-track {
+  width: 400%;
+  width: calc(400cqh * 32 / 9);
+  height: 100%;
+}
+
+.realm-tile {
+  width: 25%;
+  height: 100%;
+  flex-shrink: 0;
+}
+
 @keyframes emberDrift {
   0% { transform: translate3d(0, 0, 0) scale(0.8); opacity: 0; }
   20% { opacity: 0.95; }
@@ -446,4 +463,34 @@
   22% { opacity: 1; transform: scale(1.12); }
   65% { opacity: 0.95; transform: scale(1); }
   100% { opacity: 0; transform: scale(1.2); }
+}
+
+@keyframes dustPuff {
+  0% { opacity: 0.9; transform: translate(0, 0) scale(0.6); }
+  45% { opacity: 0.85; transform: translate(var(--dx, -12px), var(--dy, -7px)) scale(1.1); }
+  100% { opacity: 0; transform: translate(var(--dx2, -22px), var(--dy2, -12px)) scale(0.45); }
+}
+
+@keyframes slashCrescent {
+  0% { opacity: 0; transform: scale(0.45) rotate(var(--rot, -18deg)); }
+  25% { opacity: 1; transform: scale(1.06) rotate(var(--rot, -18deg)); }
+  100% { opacity: 0; transform: scale(1.28) rotate(calc(var(--rot, -18deg) + 12deg)); }
+}
+
+@keyframes pixelRingPop {
+  0% { opacity: 0.95; transform: scale(0.25); }
+  55% { opacity: 0.7; transform: scale(1.05); }
+  100% { opacity: 0; transform: scale(1.45); }
+}
+
+@keyframes victorySparkRise {
+  0%, 100% { opacity: 0; transform: translateY(4px) scale(0.5); }
+  35% { opacity: 1; transform: translateY(-6px) scale(1.15); }
+  75% { opacity: 0.9; transform: translateY(-14px) scale(0.9); }
+}
+
+@keyframes enemyDashStreak {
+  0% { opacity: 0; transform: translateX(18px) scaleX(0.4); }
+  25% { opacity: 0.95; transform: translateX(0) scaleX(1.1); }
+  100% { opacity: 0; transform: translateX(-28px) scaleX(0.6); }
 }

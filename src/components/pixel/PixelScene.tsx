@@ -5,15 +5,37 @@ import { PixelEnemy } from './PixelEnemy';
 import { RealmBackdrop } from './RealmBackdrop';
 
 const SPARKS = [
-  { x: 42, y: -34 },
-  { x: -40, y: -30 },
-  { x: 50, y: 6 },
-  { x: -48, y: 10 },
-  { x: 24, y: 40 },
-  { x: -22, y: 38 },
-  { x: 8, y: -52 },
-  { x: -10, y: 50 },
-];
+  { x: 44, y: -36, size: 6, color: '#fef08a' },
+  { x: -42, y: -32, size: 5, color: '#ffffff' },
+  { x: 52, y: 8, size: 6, color: '#fb923c' },
+  { x: -50, y: 12, size: 5, color: '#fef08a' },
+  { x: 26, y: 42, size: 5, color: '#ffffff' },
+  { x: -24, y: 40, size: 6, color: '#fb923c' },
+  { x: 10, y: -54, size: 5, color: '#fef08a' },
+  { x: -12, y: 52, size: 5, color: '#fde047' },
+] as const;
+
+const KNIGHT_HURT_SPARKS = [
+  { x: -40, y: -28, size: 6, color: '#fda4af' },
+  { x: 38, y: -32, size: 5, color: '#ffffff' },
+  { x: -46, y: 10, size: 6, color: '#f43f5e' },
+  { x: 42, y: 14, size: 5, color: '#fda4af' },
+  { x: -16, y: 40, size: 5, color: '#fb7185' },
+  { x: 14, y: -44, size: 5, color: '#ffffff' },
+] as const;
+
+const WALK_DUST = [
+  { left: '24%', delay: '0s', dx: '-14px', dy: '-6px', dx2: '-26px', dy2: '-12px', size: 6 },
+  { left: '30%', delay: '0.22s', dx: '-10px', dy: '-9px', dx2: '-20px', dy2: '-16px', size: 5 },
+  { left: '20%', delay: '0.45s', dx: '-16px', dy: '-5px', dx2: '-28px', dy2: '-10px', size: 4 },
+] as const;
+
+const VICTORY_STARS = [
+  { left: '-12px', bottom: '68%', delay: '0s', color: '#fde047' },
+  { left: '94%', bottom: '56%', delay: '0.28s', color: '#7dd3fc' },
+  { left: '14%', bottom: '86%', delay: '0.52s', color: '#fef08a' },
+  { left: '78%', bottom: '80%', delay: '0.75s', color: '#fde047' },
+] as const;
 
 interface PixelSceneProps {
   stage: Stage;
@@ -193,6 +215,145 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
             className="transition-transform"
           />
 
+          {/* Footstep Pixel Dust on Walk */}
+          {knightState === 'walk' && (
+            <div className="absolute inset-x-0 bottom-1 h-8 pointer-events-none z-20" aria-hidden="true">
+              {WALK_DUST.map((d, i) => (
+                <div
+                  key={i}
+                  className="fx-motion absolute bottom-0 bg-stone-200/85 border border-[#0d0a18] animate-[dustPuff_0.68s_steps(4)_infinite]"
+                  style={{
+                    left: d.left,
+                    width: d.size,
+                    height: d.size,
+                    animationDelay: d.delay,
+                    ['--dx' as string]: d.dx,
+                    ['--dy' as string]: d.dy,
+                    ['--dx2' as string]: d.dx2,
+                    ['--dy2' as string]: d.dy2,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Attack Dash Gust & Crescent Slash Wave */}
+          {knightState === 'attack' && (
+            <div key="knight-attack-fx" className="absolute inset-0 pointer-events-none z-20" aria-hidden="true">
+              {/* Launch Dust & Speed Streaks */}
+              {WALK_DUST.map((d, i) => (
+                <div
+                  key={i}
+                  className="fx-motion absolute bottom-1 bg-amber-100/90 border border-[#0d0a18] animate-[dustPuff_0.38s_ease-out_forwards]"
+                  style={{
+                    left: d.left,
+                    width: d.size + 1,
+                    height: d.size + 1,
+                    animationDelay: `${i * 0.04}s`,
+                    ['--dx' as string]: d.dx,
+                    ['--dy' as string]: d.dy,
+                    ['--dx2' as string]: d.dx2,
+                    ['--dy2' as string]: d.dy2,
+                  }}
+                />
+              ))}
+              {/* Pixel Crescent Sword Arc */}
+              <svg
+                width="76"
+                height="76"
+                viewBox="0 0 24 24"
+                shapeRendering="crispEdges"
+                className="fx-motion absolute -right-8 bottom-3 overflow-visible animate-[slashCrescent_0.34s_ease-out_forwards]"
+                style={{ ['--rot' as string]: '-12deg' }}
+              >
+                <path
+                  d="M7 2 H14 V4 H17 V7 H19 V14 H17 V18 H13 V21 H9 V19 H12 V16 H14 V9 H12 V5 H7 Z"
+                  fill="#0d0a18"
+                />
+                <path
+                  d="M9 3 H13 V5 H16 V8 H17 V14 H15 V17 H12 V19 H10 V17 H13 V14 H15 V8 H13 V5 H9 Z"
+                  fill="#38bdf8"
+                />
+                <path
+                  d="M11 4 H13 V6 H15 V9 H16 V13 H14 V16 H12 V14 H14 V9 H12 V6 H11 Z"
+                  fill="#ffffff"
+                />
+              </svg>
+            </div>
+          )}
+
+          {/* Knight Hurt Impact FX */}
+          {knightState === 'hurt' && (
+            <div
+              key="knight-hurt-fx"
+              className="absolute left-1/2 -translate-x-1/2 pointer-events-none z-25"
+              style={{ bottom: knightSize * 0.48 }}
+              aria-hidden="true"
+            >
+              <div className="relative w-0 h-0">
+                <svg
+                  width="82"
+                  height="82"
+                  viewBox="-41 -41 82 82"
+                  shapeRendering="crispEdges"
+                  className="fx-motion absolute -left-[41px] -top-[41px] overflow-visible animate-[impactBurst_0.42s_ease-out_forwards]"
+                >
+                  <polygon
+                    points="0,-36 8,-12 34,-14 14,4 22,30 0,14 -22,30 -14,4 -34,-14 -8,-12"
+                    fill="#f43f5e"
+                    stroke="#0d0a18"
+                    strokeWidth="4"
+                  />
+                  <polygon
+                    points="0,-24 5,-8 22,-9 9,3 15,20 0,9 -15,20 -9,3 -22,-9 -5,-8"
+                    fill="#ffe4e6"
+                  />
+                </svg>
+                {[38, -38].map((rot) => (
+                  <div
+                    key={rot}
+                    className="fx-motion absolute -left-[36px] -top-[3px] w-[72px] h-[6px] bg-rose-200 border border-[#0d0a18] animate-[slashCross_0.38s_ease-out_forwards]"
+                    style={{ ['--rot' as string]: `${rot}deg` }}
+                  />
+                ))}
+                {KNIGHT_HURT_SPARKS.map((s, i) => (
+                  <div
+                    key={i}
+                    className="fx-motion absolute border border-[#0d0a18] animate-[sparkFly_0.48s_ease-out_forwards]"
+                    style={{
+                      width: s.size,
+                      height: s.size,
+                      backgroundColor: s.color,
+                      ['--sx' as string]: `${s.x}px`,
+                      ['--sy' as string]: `${s.y}px`,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Knight Victory Sparkles */}
+          {knightState === 'victory' && (
+            <div className="absolute inset-0 pointer-events-none z-20" aria-hidden="true">
+              {VICTORY_STARS.map((v, i) => (
+                <svg
+                  key={i}
+                  width="14"
+                  height="14"
+                  viewBox="0 0 7 7"
+                  shapeRendering="crispEdges"
+                  className="fx-motion absolute animate-[victorySparkRise_1.15s_steps(5)_infinite]"
+                  style={{ left: v.left, bottom: v.bottom, animationDelay: v.delay }}
+                >
+                  <rect x="3" y="0" width="1" height="7" fill={v.color} />
+                  <rect x="0" y="3" width="7" height="1" fill={v.color} />
+                  <rect x="2" y="2" width="3" height="3" fill="#ffffff" />
+                </svg>
+              ))}
+            </div>
+          )}
+
           {/* Enemy Ultimate Impact FX on the Knight */}
           {enemyState === 'ultimate' && (
             <div
@@ -202,18 +363,15 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
             >
               {/* Crimson Abyssal Sky Pillar */}
               <div className="fx-motion w-16 sm:w-24 h-64 bg-gradient-to-t from-rose-600 via-fuchsia-500/90 to-transparent animate-[ultimateBeam_0.8s_ease-out_forwards]" />
-              {/* Shockwave Rings */}
-              <div
-                className="fx-motion absolute bottom-6 w-28 h-28 rounded-full border-4 border-rose-500 animate-[shockwaveExpand_0.65s_ease-out_forwards]"
-              />
-              <div
-                className="fx-motion absolute bottom-6 w-20 h-20 rounded-full border-2 border-fuchsia-300 animate-[shockwaveExpand_0.5s_ease-out_forwards]"
-              />
-              {/* Multi-angle Abyssal Slashes */}
+              <div className="fx-motion absolute bottom-0 w-6 sm:w-8 h-64 bg-gradient-to-t from-white via-rose-200 to-transparent animate-[ultimateBeam_0.65s_ease-out_forwards]" />
+              {/* Stepped Pixel Shockwave Frames */}
+              <div className="fx-motion absolute bottom-4 w-28 h-28 border-4 border-rose-500 animate-[pixelRingPop_0.6s_ease-out_forwards]" />
+              <div className="fx-motion absolute bottom-6 w-20 h-20 border-2 border-fuchsia-300 animate-[pixelRingPop_0.48s_ease-out_forwards]" />
+              {/* Multi-angle Dark-Outlined Abyssal Slashes */}
               {[35, -35, 80, -80].map((rot) => (
                 <div
                   key={rot}
-                  className="fx-motion absolute bottom-10 -left-[55px] w-[110px] h-[5px] bg-rose-400 rounded-full shadow-[0_0_12px_#f43f5e] animate-[slashCross_0.5s_ease-out_forwards]"
+                  className="fx-motion absolute bottom-10 -left-[55px] w-[110px] h-[6px] bg-rose-300 border border-[#0d0a18] animate-[slashCross_0.5s_ease-out_forwards]"
                   style={{ ['--rot' as string]: `${rot}deg` }}
                 />
               ))}
@@ -274,6 +432,18 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
 
               <PixelEnemy enemy={currentEnemy} state={enemyState} size={enemySize} />
 
+              {/* Enemy Attack Dash Streak */}
+              {enemyState === 'attack' && (
+                <div className="absolute inset-0 pointer-events-none z-20" aria-hidden="true">
+                  <div
+                    className="fx-motion absolute -left-8 bottom-8 w-16 h-2 bg-rose-400 border border-[#0d0a18] animate-[enemyDashStreak_0.4s_ease-out_forwards]"
+                  />
+                  <div
+                    className="fx-motion absolute -left-6 bottom-5 w-12 h-1.5 bg-amber-200 border border-[#0d0a18] animate-[enemyDashStreak_0.44s_ease-out_forwards]"
+                  />
+                </div>
+              )}
+
               {/* Knight Ultimate Finisher FX on the Enemy */}
               {knightState === 'ultimate' && (
                 <div
@@ -283,19 +453,29 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
                 >
                   {/* Golden/Cyan Excalibur Sky Beam Pillar */}
                   <div className="fx-motion w-20 sm:w-28 h-64 bg-gradient-to-t from-amber-300 via-sky-300/95 to-transparent animate-[ultimateBeam_0.8s_ease-out_forwards]" />
-                  {/* Celestial Shockwave Rings */}
-                  <div
-                    className="fx-motion absolute bottom-8 w-32 h-32 rounded-full border-4 border-amber-300 animate-[shockwaveExpand_0.65s_ease-out_forwards]"
-                  />
-                  <div
-                    className="fx-motion absolute bottom-8 w-24 h-24 rounded-full border-2 border-sky-300 animate-[shockwaveExpand_0.5s_ease-out_forwards]"
-                  />
-                  {/* Starburst Slashes */}
+                  <div className="fx-motion absolute bottom-0 w-8 sm:w-10 h-64 bg-gradient-to-t from-white via-amber-100 to-transparent animate-[ultimateBeam_0.68s_ease-out_forwards]" />
+                  {/* Celestial Stepped Pixel Shockwave Frames */}
+                  <div className="fx-motion absolute bottom-6 w-32 h-32 border-4 border-amber-300 animate-[pixelRingPop_0.65s_ease-out_forwards]" />
+                  <div className="fx-motion absolute bottom-8 w-24 h-24 border-2 border-sky-300 animate-[pixelRingPop_0.5s_ease-out_forwards]" />
+                  {/* Starburst Dark-Outlined Slashes */}
                   {[25, -25, 65, -65, 0].map((rot) => (
                     <div
                       key={rot}
-                      className="fx-motion absolute bottom-12 -left-[60px] w-[120px] h-[5px] bg-amber-100 rounded-full shadow-[0_0_12px_#fde047] animate-[slashCross_0.5s_ease-out_forwards]"
+                      className="fx-motion absolute bottom-12 -left-[60px] w-[120px] h-[6px] bg-amber-100 border border-[#0d0a18] animate-[slashCross_0.5s_ease-out_forwards]"
                       style={{ ['--rot' as string]: `${rot}deg` }}
+                    />
+                  ))}
+                  {SPARKS.map((s, i) => (
+                    <div
+                      key={i}
+                      className="fx-motion absolute bottom-12 border border-[#0d0a18] animate-[sparkFly_0.65s_ease-out_forwards]"
+                      style={{
+                        width: s.size + 1,
+                        height: s.size + 1,
+                        backgroundColor: i % 2 === 0 ? '#7dd3fc' : '#fde047',
+                        ['--sx' as string]: `${Math.round(s.x * 1.25)}px`,
+                        ['--sy' as string]: `${Math.round(s.y * 1.25)}px`,
+                      }}
                     />
                   ))}
                 </div>
@@ -310,31 +490,62 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
                   aria-hidden="true"
                 >
                   <div className="relative w-0 h-0">
+                    {/* Expanding Stepped Pixel Shockwave */}
+                    <div className="fx-motion absolute -left-[34px] -top-[34px] w-[68px] h-[68px] border-2 border-amber-200 animate-[pixelRingPop_0.42s_ease-out_forwards]" />
+                    {/* Dan the Man Style Layered Comic Starburst */}
                     <svg
-                      width="90"
-                      height="90"
-                      viewBox="-45 -45 90 90"
-                      className="fx-motion absolute -left-[45px] -top-[45px] overflow-visible animate-[impactBurst_0.45s_ease-out_forwards]"
+                      width="94"
+                      height="94"
+                      viewBox="-47 -47 94 94"
+                      shapeRendering="crispEdges"
+                      className="fx-motion absolute -left-[47px] -top-[47px] overflow-visible animate-[impactBurst_0.45s_ease-out_forwards]"
                     >
                       <polygon
-                        points="0,-40 8,-12 38,-14 14,4 24,34 0,16 -24,34 -14,4 -38,-14 -8,-12"
+                        points="0,-42 9,-13 40,-15 15,5 25,36 0,17 -25,36 -15,5 -40,-15 -9,-13"
+                        fill="#f97316"
+                        stroke="#0d0a18"
+                        strokeWidth="4"
+                      />
+                      <polygon
+                        points="0,-30 6,-9 28,-10 10,3 17,25 0,11 -17,25 -10,3 -28,-10 -6,-9"
                         fill="#fef08a"
-                        stroke="#f97316"
-                        strokeWidth="3"
+                      />
+                      <polygon
+                        points="0,-16 4,-5 15,-5 5,2 9,14 0,6 -9,14 -5,2 -15,-5 -4,-5"
+                        fill="#ffffff"
+                      />
+                    </svg>
+                    {/* Pixel Crescent Slash Overlay */}
+                    <svg
+                      width="68"
+                      height="68"
+                      viewBox="0 0 24 24"
+                      shapeRendering="crispEdges"
+                      className="fx-motion absolute -left-[34px] -top-[34px] overflow-visible animate-[slashCrescent_0.38s_ease-out_forwards]"
+                      style={{ ['--rot' as string]: '-20deg' }}
+                    >
+                      <path
+                        d="M5 4 H13 V6 H17 V10 H19 V16 H16 V20 H11 V18 H14 V15 H15 V10 H12 V7 H5 Z"
+                        fill="#ffffff"
+                        stroke="#0d0a18"
+                        strokeWidth="1"
                       />
                     </svg>
                     {[45, -45].map((rot) => (
                       <div
                         key={rot}
-                        className="fx-motion absolute -left-[40px] -top-[2px] w-[80px] h-[4px] bg-white rounded-full shadow-[0_0_10px_#fff] animate-[slashCross_0.4s_ease-out_forwards]"
+                        className="fx-motion absolute -left-[42px] -top-[3px] w-[84px] h-[6px] bg-white border border-[#0d0a18] animate-[slashCross_0.4s_ease-out_forwards]"
                         style={{ ['--rot' as string]: `${rot}deg` }}
                       />
                     ))}
                     {SPARKS.map((s, i) => (
                       <div
                         key={i}
-                        className="fx-motion absolute w-1.5 h-1.5 bg-amber-300 rounded-full animate-[sparkFly_0.55s_ease-out_forwards]"
+                        className="fx-motion absolute border border-[#0d0a18] animate-[sparkFly_0.52s_ease-out_forwards]"
                         style={{
+                          width: s.size,
+                          height: s.size,
+                          backgroundColor: s.color,
                           ['--sx' as string]: `${s.x}px`,
                           ['--sy' as string]: `${s.y}px`,
                         }}
@@ -353,18 +564,29 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
                   aria-hidden="true"
                 >
                   <div className="relative w-0 h-0">
+                    <div
+                      className="fx-motion absolute -left-[30px] -top-[30px] w-[60px] h-[60px] border-2 animate-[pixelRingPop_0.42s_ease-out_forwards]"
+                      style={{ borderColor: isBossEncounter ? '#fb7185' : '#38bdf8' }}
+                    />
                     <svg
                       width="84"
                       height="84"
                       viewBox="-42 -42 84 84"
+                      shapeRendering="crispEdges"
                       className="fx-motion absolute -left-[42px] -top-[42px] overflow-visible animate-[shieldWardPop_0.45s_ease-out_forwards]"
                     >
                       {/* Hexagonal Runic Aegis Ward */}
                       <polygon
                         points="0,-34 30,-17 30,17 0,34 -30,17 -30,-17"
                         fill={isBossEncounter ? 'rgba(244,63,94,0.28)' : 'rgba(56,189,248,0.28)'}
+                        stroke="#0d0a18"
+                        strokeWidth="5"
+                      />
+                      <polygon
+                        points="0,-34 30,-17 30,17 0,34 -30,17 -30,-17"
+                        fill="none"
                         stroke={isBossEncounter ? '#fb7185' : '#38bdf8'}
-                        strokeWidth="3"
+                        strokeWidth="2.5"
                       />
                       <polygon
                         points="0,-22 19,-11 19,11 0,22 -19,11 -19,-11"
@@ -376,7 +598,7 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
                     {SPARKS.slice(0, 5).map((s, i) => (
                       <div
                         key={i}
-                        className="fx-motion absolute w-1.5 h-1.5 bg-sky-300 rounded-full animate-[sparkFly_0.45s_ease-out_forwards]"
+                        className="fx-motion absolute w-2 h-2 bg-sky-300 border border-[#0d0a18] animate-[sparkFly_0.45s_ease-out_forwards]"
                         style={{
                           ['--sx' as string]: `${-Math.abs(s.x)}px`,
                           ['--sy' as string]: `${s.y}px`,

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { CharacterGender } from '../../types/game';
+import { compilePixelGrid, CompiledRect, PixelLayer } from './sprites/pixelUtils';
 
 interface PixelKnightProps {
   gender: CharacterGender;
@@ -8,15 +9,396 @@ interface PixelKnightProps {
   className?: string;
 }
 
+const OUTLINE = '#0d0a18';
+
+// --- Shared Palettes ---
+const MALE_PALETTE: Record<string, string> = {
+  s: '#f1f5f9', // bright steel highlight
+  a: '#94a3b8', // armor base silver
+  d: '#475569', // armor mid shadow
+  v: '#1e293b', // deep steel shadow
+  c: '#3b82f6', // royal blue cape/crest base
+  C: '#93c5fd', // royal blue highlight
+  B: '#1d4ed8', // royal blue shadow
+  t: '#fbbf24', // gold trim/buckle
+  T: '#d97706', // gold shadow
+  l: '#78350f', // leather belt/straps
+  L: '#451a03', // leather dark
+  f: '#fbd3b0', // skin highlight
+  F: '#e5a97c', // skin shadow
+  w: '#ffffff', // eye white / glint
+  e: '#0284c7', // heroic eye iris
+  k: '#0d0a18', // ink dark crease / brow
+};
+
+const FEMALE_PALETTE: Record<string, string> = {
+  s: '#ffffff', // pearl steel highlight
+  a: '#cbd5e1', // armor base pearl silver
+  d: '#64748b', // armor mid shadow
+  v: '#334155', // deep steel shadow
+  c: '#ef476f', // crimson cloak/plume base
+  C: '#fda4af', // crimson highlight
+  B: '#be123c', // crimson shadow
+  t: '#ffd166', // gold filigree highlight
+  T: '#d97706', // gold shadow
+  h: '#fbbf24', // golden hair highlight
+  H: '#d97706', // hair mid
+  y: '#92400e', // hair shadow
+  l: '#78350f', // leather belt
+  L: '#451a03', // leather dark
+  f: '#fde2cc', // skin highlight
+  F: '#eab58f', // skin shadow
+  w: '#ffffff', // eye white / glint
+  e: '#0d9488', // emerald-teal eye iris
+  k: '#0d0a18', // ink dark crease / brow
+};
+
+// --- Cape Layers ---
+function buildCapeSprites(p: Record<string, string>) {
+  return {
+    idle: compilePixelGrid(
+      [
+        '.....CCCcc',
+        '....CCcccB',
+        '...CCccBBB',
+        '...CccBBBB',
+        '..CccBBBB.',
+        '..ccBBBB..',
+        '.ccBBBB...',
+        '.cBBBB....',
+        '.BBBB.....',
+        '..BB......',
+      ],
+      p,
+      { outlineColor: OUTLINE, offsetX: 4, offsetY: 15 }
+    ),
+    walk: compilePixelGrid(
+      [
+        '......CCCcc',
+        '....CCCcccB',
+        '..CCCcccBBB',
+        '.CCcccBBBB.',
+        'CCccBBBB...',
+        'ccBBBB.....',
+        '.BBBB......',
+        '..BB.......',
+      ],
+      p,
+      { outlineColor: OUTLINE, offsetX: 1, offsetY: 15 }
+    ),
+    action: compilePixelGrid(
+      [
+        '.......CCCcc',
+        '....CCCCcccB',
+        '..CCCCcccBBB',
+        'CCCcccBBBB..',
+        '.ccBBBB.....',
+        '..BBBB......',
+      ],
+      p,
+      { outlineColor: OUTLINE, offsetX: 0, offsetY: 15 }
+    ),
+  };
+}
+
+// --- Boots & Greaves ---
+function buildLegSprites(p: Record<string, string>) {
+  return {
+    left: compilePixelGrid(
+      [
+        '.dad.',
+        '.sad.',
+        '.dad.',
+        '.dvd.',
+        'sadd.',
+        'aaddd',
+        'ddddd',
+        'vvvvv',
+      ],
+      p,
+      { outlineColor: OUTLINE, offsetX: 14, offsetY: 26 }
+    ),
+    right: compilePixelGrid(
+      [
+        '.sad..',
+        '.sad..',
+        '.dad..',
+        '.dvd..',
+        'saadd.',
+        'aaaddd',
+        'dddddd',
+        'vvvvvv',
+      ],
+      p,
+      { outlineColor: OUTLINE, offsetX: 21, offsetY: 26 }
+    ),
+    kneel: compilePixelGrid(
+      [
+        '...sad..sad..',
+        '...dad..aad..',
+        '..saadd.dddd.',
+        'vvvddd..vvvv.',
+      ],
+      p,
+      { outlineColor: OUTLINE, offsetX: 12, offsetY: 30 }
+    ),
+  };
+}
+
+// --- Torso Breastplate ---
+function buildTorsoSprite(p: Record<string, string>): CompiledRect[] {
+  return compilePixelGrid(
+    [
+      '..ssaaaaaaas..',
+      '.ssaaatttaaad.',
+      '.saaaatTtaadd.',
+      '.aaaattttaddd.',
+      '.daaaatTtaadd.',
+      '..dddddddddd..',
+      '..llllTTllll..',
+      '..LLLLtTLLLL..',
+      '...ccBBBBcc...',
+      '...cBBBBBBc...',
+    ],
+    p,
+    { outlineColor: OUTLINE, offsetX: 13, offsetY: 16 }
+  );
+}
+
+// --- Expressive Dan-the-Man Inspired Heads ---
+function buildHeadSprites(p: Record<string, string>, isFemale: boolean) {
+  if (isFemale) {
+    return {
+      normal: compilePixelGrid(
+        [
+          '.........ttt.......',
+          '........tCCct......',
+          '......sssstttss....',
+          '.....ssaaaaaaaaas..',
+          '..hhh.sattttttass..',
+          '.hhHHsaakffffkaaas.',
+          'hhHHyaakwfkffwkfaad',
+          'hHHy..akwfkffwkfadd',
+          '.Hy...akffFFFFffadd',
+          '.y....aaffkkkkffadd',
+          '......ddffffffffddd',
+          '.......ddddddddddd.',
+        ],
+        p,
+        { outlineColor: OUTLINE, offsetX: 9, offsetY: 4 }
+      ),
+      hurt: compilePixelGrid(
+        [
+          '.........ttt.......',
+          '........tCCct......',
+          '......sssstttss....',
+          '.....ssaaaaaaaaas..',
+          '..hhh.sattttttass..',
+          '.hhHHsaakffffkaaas.',
+          'hhHHyaakkkfkkfkfaad',
+          'hHHy..akffFFFFffadd',
+          '.Hy...akfFkkkkFfadd',
+          '.y....ddffffffffddd',
+          '.......ddddddddddd.',
+        ],
+        p,
+        { outlineColor: OUTLINE, offsetX: 9, offsetY: 5 }
+      ),
+    };
+  }
+
+  return {
+    normal: compilePixelGrid(
+      [
+        '........CCCCcc.....',
+        '.......CCcccBBB....',
+        '.....sssssssssss...',
+        '....ssaaaaaaaaaas..',
+        '.CCCsaatttttttaas..',
+        'CCccsaakfffffkaaas.',
+        '.BBB.aakwfkkfwkfaad',
+        '.....aakwfkkfwkfadd',
+        '.....aakffFFFFffadd',
+        '.....ddaffkkkkffddd',
+        '......dddddddddddd.',
+      ],
+      p,
+      { outlineColor: OUTLINE, offsetX: 9, offsetY: 5 }
+    ),
+    hurt: compilePixelGrid(
+      [
+        '........CCCCcc.....',
+        '.......CCcccBBB....',
+        '.....sssssssssss...',
+        '....ssaaaaaaaaaas..',
+        '.CCCsaatttttttaas..',
+        'CCccsaakfffffkaaas.',
+        '.BBB.aakkfkffkkfaad',
+        '.....aakffFFFFffadd',
+        '.....aafFkkkkkFfadd',
+        '.....ddddddddddddd.',
+      ],
+      p,
+      { outlineColor: OUTLINE, offsetX: 9, offsetY: 6 }
+    ),
+  };
+}
+
+// --- Shield & Swords ---
+function buildShieldSprite(p: Record<string, string>): CompiledRect[] {
+  return compilePixelGrid(
+    [
+      '.sssssss.',
+      'saaatttas',
+      'saatTTtas',
+      'saaatttas',
+      'daaatTdad',
+      '.daatdad.',
+      '..dadad..',
+      '...ddd...',
+    ],
+    p,
+    { outlineColor: OUTLINE, offsetX: 9, offsetY: 18 }
+  );
+}
+
+function buildSwordSprites(p: Record<string, string>) {
+  return {
+    idle: compilePixelGrid(
+      [
+        '..............www',
+        '.............wsww',
+        '............wssaw',
+        '...........wsasw.',
+        '..........wsasw..',
+        '.........wsasw...',
+        '........wsasw....',
+        '.......wsasw.....',
+        '......ttasw......',
+        '.....tTttw.......',
+        '...tTettt........',
+        '..sslllt.........',
+        '.ssallt..........',
+        'saadd............',
+        'dddd.............',
+      ],
+      p,
+      { outlineColor: OUTLINE, offsetX: 25, offsetY: 5 }
+    ),
+    swing: compilePixelGrid(
+      [
+        '................www',
+        '...............wsww',
+        '..............wssaw',
+        '.............wsasw.',
+        '............wsasw..',
+        '...........wsasw...',
+        '..........wsasw....',
+        '.........wsasw.....',
+        '........wsasw......',
+        '.......ttasw.......',
+        '......tTttw........',
+        '....tTettt.........',
+        '..ssslllt..........',
+        '.ssaaalt...........',
+        'saadd..............',
+        'dddd...............',
+      ],
+      p,
+      { outlineColor: OUTLINE, offsetX: 25, offsetY: 3 }
+    ),
+    ultimateSword: compilePixelGrid(
+      [
+        '.................www',
+        '................wcww',
+        '...............wcwww',
+        '..............wctcw.',
+        '.............wctcw..',
+        '............wctcw...',
+        '...........wctcw....',
+        '..........wctcw.....',
+        '.........wctcw......',
+        '.......ttTctw.......',
+        '......tTTetw........',
+        '....ttTettt.........',
+        '...tTlllt...........',
+        '..ssallt............',
+        '.saadd..............',
+        '.dddd...............',
+      ],
+      p,
+      { outlineColor: OUTLINE, offsetX: 25, offsetY: 2 }
+    ),
+    victory: compilePixelGrid(
+      [
+        '..ww..',
+        '.wsaw.',
+        '.wsaw.',
+        '.wsaw.',
+        '.wsaw.',
+        '.wsaw.',
+        '.wsaw.',
+        '.wsaw.',
+        '.wsaw.',
+        '.wsaw.',
+        'ttett.',
+        'tTTt..',
+        '.ll...',
+        'saad..',
+        'dddd..',
+      ],
+      p,
+      { outlineColor: OUTLINE, offsetX: 26, offsetY: 1 }
+    ),
+    defeat: compilePixelGrid(
+      [
+        '..tT..',
+        '..ll..',
+        'ttett.',
+        '.wsaw.',
+        '.wsaw.',
+        '.wsaw.',
+        '.ssad.',
+      ],
+      p,
+      { outlineColor: OUTLINE, offsetX: 27, offsetY: 27 }
+    ),
+  };
+}
+
+// Pre-compile both gender sprite sets once at module load
+const SPRITE_CACHE = {
+  male: {
+    cape: buildCapeSprites(MALE_PALETTE),
+    legs: buildLegSprites(MALE_PALETTE),
+    torso: buildTorsoSprite(MALE_PALETTE),
+    head: buildHeadSprites(MALE_PALETTE, false),
+    shield: buildShieldSprite(MALE_PALETTE),
+    sword: buildSwordSprites(MALE_PALETTE),
+  },
+  female: {
+    cape: buildCapeSprites(FEMALE_PALETTE),
+    legs: buildLegSprites(FEMALE_PALETTE),
+    torso: buildTorsoSprite(FEMALE_PALETTE),
+    head: buildHeadSprites(FEMALE_PALETTE, true),
+    shield: buildShieldSprite(FEMALE_PALETTE),
+    sword: buildSwordSprites(FEMALE_PALETTE),
+  },
+};
+
 export const PixelKnight: React.FC<PixelKnightProps> = ({
   gender,
   state,
   size = 120,
   className = '',
 }) => {
-  const isFemale = gender === 'female';
+  const uid = useId().replace(/:/g, '');
+  const victoryGlowId = `victoryGlow-${uid}`;
+  const slashGradId = `slashGrad-${uid}`;
 
-  // State-specific animation styles with enhanced smoothness
+  const isFemale = gender === 'female';
+  const sprites = isFemale ? SPRITE_CACHE.female : SPRITE_CACHE.male;
+
   let animClass = '';
   if (state === 'walk') animClass = 'animate-[knightWalk_0.6s_ease-in-out_infinite]';
   if (state === 'idle') animClass = 'animate-[knightIdle_2.4s_ease-in-out_infinite]';
@@ -26,12 +408,12 @@ export const PixelKnight: React.FC<PixelKnightProps> = ({
   if (state === 'victory') animClass = 'animate-[knightVictory_1.5s_ease-in-out_infinite]';
   if (state === 'defeat') animClass = 'opacity-50 grayscale transition-all duration-500';
 
-  // Colors
-  const armorColor = isFemale ? '#94a3b8' : '#64748b';
-  const armorHighlight = isFemale ? '#f8fafc' : '#cbd5e1';
-  const trimColor = isFemale ? '#ffd166' : '#60a5fa';
-  const capeColor = isFemale ? '#ef476f' : '#2563eb';
-  const hairColor = isFemale ? '#d97706' : '#475569';
+  const capeRects =
+    state === 'walk'
+      ? sprites.cape.walk
+      : state === 'attack' || state === 'ultimate'
+      ? sprites.cape.action
+      : sprites.cape.idle;
 
   return (
     <div
@@ -40,304 +422,182 @@ export const PixelKnight: React.FC<PixelKnightProps> = ({
       aria-label={`${gender} Knight (${state})`}
     >
       <svg
-        viewBox="0 0 64 64"
+        viewBox="0 0 40 40"
         width="100%"
         height="100%"
-        className="w-full h-full overflow-visible drop-shadow-[0_6px_12px_rgba(0,0,0,0.7)]"
+        className="w-full h-full overflow-visible drop-shadow-[0_6px_12px_rgba(0,0,0,0.75)]"
         style={{ shapeRendering: 'crispEdges' }}
       >
         <defs>
-          {/* Slashing blade gradient */}
-          <linearGradient id="slashGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.9" />
-            <stop offset="50%" stopColor="#fef08a" stopOpacity="0.8" />
+          <linearGradient id={slashGradId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.95" />
+            <stop offset="50%" stopColor="#fef08a" stopOpacity="0.85" />
             <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
           </linearGradient>
-          {/* Victory glow */}
-          <radialGradient id="victoryGlow" cx="50%" cy="50%" r="50%">
+          <radialGradient id={victoryGlowId} cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#fef08a" stopOpacity="1" />
-            <stop offset="70%" stopColor="#f59e0b" stopOpacity="0.5" />
+            <stop offset="70%" stopColor="#f59e0b" stopOpacity="0.45" />
             <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
           </radialGradient>
         </defs>
 
-        {/* Dynamic Shadow with scale on bob */}
+        {/* Ground Shadow */}
         <ellipse
-          cx="32"
-          cy="60"
-          rx={state === 'defeat' ? 16 : 14}
-          ry={state === 'defeat' ? 4 : 3.5}
+          cx="20"
+          cy="35"
+          rx={state === 'defeat' ? 13 : 10}
+          ry={state === 'defeat' ? 2.5 : 2.2}
           fill="#000000"
           opacity={state === 'walk' ? 0.45 : 0.4}
           className={state === 'walk' ? 'animate-[shadowWalk_0.6s_ease-in-out_infinite]' : ''}
-          style={{ transformOrigin: '32px 60px' }}
+          style={{ transformOrigin: '20px 35px' }}
         />
 
-        {/* Celestial Ultimate Aura Ring */}
+        {/* Ultimate Aura */}
         {state === 'ultimate' && (
           <g>
-            <circle cx="32" cy="34" r="28" fill="url(#victoryGlow)" opacity="0.85" />
+            <circle cx="20" cy="20" r="19" fill={`url(#${victoryGlowId})`} opacity="0.85" />
             <circle
-              cx="32"
-              cy="34"
-              r="24"
+              cx="20"
+              cy="20"
+              r="16"
               fill="none"
               stroke="#38bdf8"
-              strokeWidth="1.5"
-              strokeDasharray="4,3"
+              strokeWidth="1"
+              strokeDasharray="3,2"
             />
-            <polygon points="32,1 35,9 32,7 29,9" fill="#fef08a" />
-            <polygon points="8,22 15,25 11,28" fill="#38bdf8" />
-            <polygon points="56,22 49,25 53,28" fill="#38bdf8" />
+            <rect x="19" y="0" width="2" height="4" fill="#fef08a" />
+            <rect x="1" y="14" width="3" height="2" fill="#38bdf8" />
+            <rect x="36" y="14" width="3" height="2" fill="#38bdf8" />
           </g>
         )}
 
-        {/* Multi-layered flowing cape */}
+        {/* Flowing Cape */}
         {state !== 'defeat' && (
           <g
             className={state === 'walk' ? 'animate-[capeFlutter_0.5s_ease-in-out_infinite_alternate]' : ''}
-            style={{ transformOrigin: '21px 26px' }}
+            style={{ transformOrigin: '14px 16px' }}
           >
-            <path
-              d={
-                state === 'walk'
-                  ? 'M21,26 L12,46 L18,49 L25,44 L24,28 Z'
-                  : state === 'attack' || state === 'ultimate'
-                  ? 'M21,26 L6,36 L15,42 L24,40 L24,28 Z'
-                  : state === 'victory'
-                  ? 'M21,26 L14,48 L22,46 L25,28 Z'
-                  : 'M21,26 L15,48 L25,46 L25,28 Z'
-              }
-              fill={capeColor}
-            />
-            {/* Cape inner shadow fold */}
-            <path
-              d={
-                state === 'walk'
-                  ? 'M21,26 L15,45 L18,48 L22,27 Z'
-                  : 'M21,26 L18,46 L20,47 L23,27 Z'
-              }
-              fill="#1e1b4b"
-              opacity="0.3"
-            />
+            <PixelLayer rects={capeRects} />
           </g>
         )}
 
-        {/* Legs & Sabatons (Boots) with animated steps */}
+        {/* Legs & Armored Sabatons */}
         {state === 'walk' ? (
           <g>
-            {/* Left leg (front side) swinging forward */}
             <g
               className="animate-[legLeftWalk_0.6s_ease-in-out_infinite]"
-              style={{ transformOrigin: '27.5px 46px' }}
+              style={{ transformOrigin: '16px 26px' }}
             >
-              <rect x="25" y="46" width="5" height="10" fill="#334155" />
-              <rect x="23" y="54" width="8" height="5" fill="#1e293b" />
-              <rect x="23" y="55" width="2" height="3" fill="#64748b" /> {/* Toe highlight */}
+              <PixelLayer rects={sprites.legs.left} />
             </g>
-            {/* Right leg (back side) swinging back */}
             <g
               className="animate-[legRightWalk_0.6s_ease-in-out_infinite]"
-              style={{ transformOrigin: '36.5px 46px' }}
+              style={{ transformOrigin: '24px 26px' }}
             >
-              <rect x="34" y="45" width="5" height="10" fill="#475569" />
-              <rect x="32" y="53" width="8" height="5" fill="#334155" />
+              <PixelLayer rects={sprites.legs.right} />
             </g>
           </g>
         ) : state === 'defeat' ? (
-          <g>
-            {/* Kneeling down */}
-            <rect x="24" y="50" width="16" height="5" fill="#334155" />
-            <rect x="20" y="54" width="10" height="4" fill="#1e293b" />
-            <rect x="34" y="53" width="7" height="4" fill="#1e293b" />
-          </g>
+          <PixelLayer rects={sprites.legs.kneel} />
         ) : (
           <g>
-            <rect x="26" y="46" width="5" height="10" fill="#334155" />
-            <rect x="24" y="54" width="8" height="5" fill="#1e293b" />
-            <rect x="33" y="46" width="5" height="10" fill="#475569" />
-            <rect x="32" y="54" width="8" height="5" fill="#334155" />
+            <PixelLayer rects={sprites.legs.left} />
+            <PixelLayer rects={sprites.legs.right} />
           </g>
         )}
 
-        {/* Torso / Breastplate */}
+        {/* Torso Breastplate */}
         <g
-          transform={state === 'defeat' ? 'translate(0, 4)' : ''}
+          transform={state === 'defeat' ? 'translate(0, 4)' : undefined}
           className={state === 'walk' ? 'animate-[torsoWalk_0.6s_ease-in-out_infinite]' : ''}
-          style={{ transformOrigin: '32px 42px' }}
+          style={{ transformOrigin: '20px 22px' }}
         >
-          <rect x="24" y="26" width="16" height="20" fill={armorColor} rx="1" />
-          <rect x="26" y="27" width="12" height="18" fill={armorHighlight} opacity="0.25" />
-          
-          {/* Armor Emblem / Heraldic Sigil */}
-          <line x1="32" y1="28" x2="32" y2="44" stroke={trimColor} strokeWidth="2" />
-          <line x1="26" y1="34" x2="38" y2="34" stroke={trimColor} strokeWidth="2" />
-          <rect x="30" y="32" width="4" height="4" fill="#fef08a" opacity="0.8" />
-          
-          {/* Belt & Buckle */}
-          <rect x="24" y="42" width="16" height="4" fill="#78350f" />
-          <rect x="30" y="42" width="4" height="4" fill={trimColor} />
+          <PixelLayer rects={sprites.torso} />
         </g>
 
-        {/* Head / Helmet */}
-        {state === 'defeat' ? (
-          <g transform="translate(0, 8)">
-            <rect x="25" y="14" width="14" height="14" fill={armorColor} rx="2" />
-            <rect x="27" y="21" width="10" height="3" fill="#0f172a" />
-          </g>
-        ) : (
-          <g
-            className={state === 'walk' ? 'animate-[headBob_0.6s_ease-in-out_infinite]' : ''}
-            style={{ transformOrigin: '32px 26px' }}
-          >
-            {/* Helm Base */}
-            <rect x="25" y="12" width="14" height="14" fill={armorColor} rx="2" />
-            <rect x="26" y="13" width="12" height="4" fill={armorHighlight} opacity="0.3" />
-            
-            {/* Visor Slit */}
-            <rect x="27" y="17" width="11" height="3" fill="#0f172a" />
-            
-            {/* Glowing Hero Eyes (Blinks softly in idle) */}
-            <rect x="29" y="18" width="2" height="1" fill="#38bdf8" className="animate-pulse" />
-            <rect x="34" y="18" width="2" height="1" fill="#38bdf8" className="animate-pulse" />
+        {/* Hero Head & Crest */}
+        <g
+          transform={state === 'defeat' ? 'translate(1, 5)' : undefined}
+          className={state === 'walk' ? 'animate-[headBob_0.6s_ease-in-out_infinite]' : ''}
+          style={{ transformOrigin: '20px 13px' }}
+        >
+          <PixelLayer rects={state === 'hurt' ? sprites.head.hurt : sprites.head.normal} />
+        </g>
 
-            {/* Helmet Plume / Hair */}
-            {isFemale ? (
-              <g
-                className={state === 'walk' ? 'animate-[plumeFlutter_0.5s_ease-in-out_infinite_alternate]' : ''}
-                style={{ transformOrigin: '24px 16px' }}
-              >
-                {/* Flowing golden hair behind helm */}
-                <path d="M24,16 L17,32 L24,28 Z" fill={hairColor} />
-                <path d="M25,12 L32,5 L35,12 Z" fill="#ef476f" />
-                <circle cx="32" cy="6" r="2" fill="#ffd166" />
-              </g>
-            ) : (
-              <g
-                className={state === 'walk' ? 'animate-[plumeFlutter_0.5s_ease-in-out_infinite_alternate]' : ''}
-                style={{ transformOrigin: '26px 12px' }}
-              >
-                {/* Regal Knight Crest Plume with dynamic flutter */}
-                <path d="M26,12 Q32,2 38,12 Z" fill="#2563eb" />
-                <rect x="30" y="5" width="4" height="8" fill="#60a5fa" />
-              </g>
-            )}
-          </g>
-        )}
-
-        {/* Shield (Left Arm) */}
+        {/* Shield (Left / Front Hip) */}
         {state !== 'defeat' && (
-          <g transform={state === 'attack' ? 'translate(-4, 3) rotate(-10)' : ''}>
+          <g transform={state === 'attack' ? 'translate(-2, 2) rotate(-8 13 22)' : undefined}>
             <g
               className={state === 'walk' ? 'animate-[shieldWalk_0.6s_ease-in-out_infinite]' : ''}
-              style={{ transformOrigin: '20px 30px' }}
+              style={{ transformOrigin: '13px 19px' }}
             >
-              <path
-                d="M16,28 L24,28 L24,42 L20,46 L16,42 Z"
-                fill={armorColor}
-                stroke="#0f172a"
-                strokeWidth="1"
-              />
-              {/* Shield Emblem */}
-              <path d="M18,30 L22,30 L20,35 Z" fill={trimColor} />
-              <line x1="20" y1="30" x2="20" y2="41" stroke={trimColor} strokeWidth="1" />
-              {/* Rim highlight */}
-              <line x1="17" y1="29" x2="23" y2="29" stroke={armorHighlight} strokeWidth="1" opacity="0.5" />
+              <PixelLayer rects={sprites.shield} />
             </g>
           </g>
         )}
 
-        {/* Sword & Right Arm with Dynamic Actions */}
+        {/* Sword & Combat Slash FX */}
         {state === 'ultimate' ? (
           <g>
-            {/* Dual Celestial Slash Arcs */}
             <path
-              d="M28,2 C64,6 76,32 62,58"
+              d="M21,2 C43,4 48,20 40,37"
               fill="none"
               stroke="#fef08a"
-              strokeWidth="8"
-              strokeLinecap="round"
+              strokeWidth="5"
+              strokeLinecap="square"
               className="animate-[slashArc_0.7s_ease-out_forwards]"
             />
             <path
-              d="M32,6 C58,10 68,32 56,54"
+              d="M24,5 C39,8 45,21 36,34"
               fill="none"
-              stroke="url(#slashGradient)"
-              strokeWidth="5"
-              strokeLinecap="round"
+              stroke={`url(#${slashGradId})`}
+              strokeWidth="3.5"
+              strokeLinecap="square"
               className="animate-[slashArc_0.65s_ease-out_0.1s_forwards]"
             />
-            {/* Supercharged Excalibur Greatblade firmly anchored at shoulder */}
-            <g transform="translate(38, 25)">
-              <g
-                className="animate-[swordSwing_0.75s_cubic-bezier(0.3,0,0.2,1)_forwards]"
-                style={{ transformOrigin: '2.5px 4px' }}
-              >
-                <rect x="0" y="0" width="5" height="10" fill={armorColor} />
-                {/* Winged Golden Crossguard */}
-                <rect x="-6" y="8" width="17" height="4" fill="#fbbf24" stroke="#f59e0b" strokeWidth="0.5" />
-                {/* Outer Azure Energy Blade */}
-                <rect x="-1" y="12" width="7" height="36" fill="#38bdf8" opacity="0.8" />
-                {/* Inner Solar Core Blade */}
-                <rect x="1" y="12" width="3" height="34" fill="#fef08a" />
-                <polygon points="-1,48 6,48 2.5,56" fill="#ffffff" />
-              </g>
+            <g
+              className="animate-[swordSwing_0.75s_cubic-bezier(0.3,0,0.2,1)_forwards]"
+              style={{ transformOrigin: '26px 16px' }}
+            >
+              <PixelLayer rects={sprites.sword.ultimateSword} />
             </g>
           </g>
         ) : state === 'attack' ? (
           <g>
-            {/* Slashing Motion Blur Arc */}
             <path
-              d="M32,8 C56,12 66,32 58,54"
+              d="M23,4 C40,8 45,21 38,34"
               fill="none"
-              stroke="url(#slashGradient)"
-              strokeWidth="5"
-              strokeLinecap="round"
+              stroke={`url(#${slashGradId})`}
+              strokeWidth="3.5"
+              strokeLinecap="square"
               className="animate-[slashArc_0.5s_ease-out_forwards]"
             />
-            {/* Knight sword swinging overhead -> forward */}
-            <g transform="translate(38, 25)">
-              <g
-                className="animate-[swordSwing_0.55s_cubic-bezier(0.3,0,0.2,1)_forwards]"
-                style={{ transformOrigin: '2.5px 4px' }}
-              >
-                <rect x="0" y="0" width="5" height="10" fill={armorColor} />
-                <rect x="-4" y="9" width="13" height="3" fill="#ffd166" />
-                <rect x="1" y="12" width="3" height="26" fill="#f8fafc" stroke="#94a3b8" />
-                <polygon points="1,38 4,38 2.5,42" fill="#ffffff" />
-              </g>
+            <g
+              className="animate-[swordSwing_0.55s_cubic-bezier(0.3,0,0.2,1)_forwards]"
+              style={{ transformOrigin: '26px 17px' }}
+            >
+              <PixelLayer rects={sprites.sword.swing} />
             </g>
           </g>
         ) : state === 'victory' ? (
           <g>
-            {/* Radiant Victory Star Glow */}
-            <circle cx="40" cy="8" r="16" fill="url(#victoryGlow)" />
-            {/* Sword raised high */}
-            <g transform="translate(39, 4)">
-              <rect x="-2" y="18" width="5" height="10" fill={armorColor} />
-              <rect x="-6" y="15" width="13" height="3" fill="#ffd166" />
-              <rect x="-1" y="-6" width="3" height="22" fill="#f8fafc" stroke="#94a3b8" />
-              {/* Gleaming Star Sparkle */}
-              <g transform="translate(0, -8)" className="animate-spin" style={{ animationDuration: '4s' }}>
-                <polygon points="0,-7 2,-2 7,0 2,2 0,7 -2,2 -7,0 -2,-2" fill="#fef08a" />
-              </g>
+            <circle cx="28" cy="2" r="10" fill={`url(#${victoryGlowId})`} />
+            <PixelLayer rects={sprites.sword.victory} />
+            <g transform="translate(28, 1)" className="animate-spin" style={{ animationDuration: '4s' }}>
+              <rect x="-4" y="-1" width="8" height="2" fill="#fef08a" />
+              <rect x="-1" y="-4" width="2" height="8" fill="#fef08a" />
+              <rect x="-1" y="-1" width="2" height="2" fill="#ffffff" />
             </g>
           </g>
         ) : state === 'defeat' ? (
-          <g transform="translate(42, 54) rotate(80)">
-            <rect x="-2" y="0" width="10" height="3" fill="#ffd166" />
-            <rect x="2" y="3" width="3" height="16" fill="#cbd5e1" stroke="#64748b" />
-          </g>
+          <PixelLayer rects={sprites.sword.defeat} />
         ) : (
-          <g transform="translate(38, 25)">
-            <g
-              className={state === 'walk' ? 'animate-[swordWalk_0.6s_ease-in-out_infinite]' : ''}
-              style={{ transformOrigin: '2px 8px' }}
-            >
-              <rect x="0" y="4" width="5" height="10" fill={armorColor} />
-              <rect x="-2" y="12" width="9" height="3" fill="#ffd166" />
-              <rect x="1" y="15" width="3" height="18" fill="#f8fafc" stroke="#94a3b8" />
-            </g>
+          <g
+            className={state === 'walk' ? 'animate-[swordWalk_0.6s_ease-in-out_infinite]' : ''}
+            style={{ transformOrigin: '26px 18px' }}
+          >
+            <PixelLayer rects={sprites.sword.idle} />
           </g>
         )}
       </svg>
