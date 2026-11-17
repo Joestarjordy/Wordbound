@@ -28,7 +28,7 @@ export const PixelEnemy: React.FC<PixelEnemyProps> = ({
   const effectiveSize = size || (isBoss ? 150 : 110);
   const { spriteType } = enemy;
   const useBossGrid = isBossSprite(spriteType);
-  const vb = useBossGrid ? 44 : 36;
+  const vb = useBossGrid ? 64 : 48;
 
   const spriteRects = isBossSprite(spriteType)
     ? BOSS_ENEMY_SPRITES[spriteType]
@@ -51,8 +51,8 @@ export const PixelEnemy: React.FC<PixelEnemyProps> = ({
     animClass = 'animate-[enemyDissolve_0.9s_ease-out_forwards]';
   }
 
-  const shadowCy = useBossGrid ? 40.5 : 33;
-  const shadowCx = useBossGrid ? 22 : 18;
+  const shadowCy = useBossGrid ? 59.5 : 44.5;
+  const shadowCx = useBossGrid ? 32 : 24;
 
   return (
     <div
@@ -79,8 +79,8 @@ export const PixelEnemy: React.FC<PixelEnemyProps> = ({
         <ellipse
           cx={shadowCx}
           cy={shadowCy}
-          rx={useBossGrid ? 16 : 11}
-          ry={useBossGrid ? 3 : 2.3}
+          rx={useBossGrid ? 22 : 14}
+          ry={useBossGrid ? 3.8 : 2.8}
           fill="#000000"
           opacity="0.5"
         />
@@ -88,24 +88,24 @@ export const PixelEnemy: React.FC<PixelEnemyProps> = ({
         {/* Abyssal Ultimate Aura */}
         {state === 'ultimate' && (
           <g>
-            <circle cx={shadowCx} cy={shadowCx} r={useBossGrid ? 21 : 17} fill={`url(#${abyssGlowId})`} />
+            <circle cx={shadowCx} cy={shadowCx} r={useBossGrid ? 30 : 22} fill={`url(#${abyssGlowId})`} />
             <circle
               cx={shadowCx}
               cy={shadowCx}
-              r={useBossGrid ? 18 : 14}
+              r={useBossGrid ? 26 : 19}
               fill="none"
               stroke="#f43f5e"
-              strokeWidth="1.2"
-              strokeDasharray="3,2"
+              strokeWidth="1.5"
+              strokeDasharray="4,3"
             />
-            <rect x={shadowCx - 1} y={0} width="2" height="5" fill="#f43f5e" />
-            <rect x={1} y={shadowCx - 4} width="4" height="2" fill="#a855f7" />
-            <rect x={vb - 5} y={shadowCx - 4} width="4" height="2" fill="#a855f7" />
+            <rect x={shadowCx - 1} y={0} width="2" height="7" fill="#f43f5e" />
+            <rect x={1} y={shadowCx - 5} width="5" height="2" fill="#a855f7" />
+            <rect x={vb - 6} y={shadowCx - 5} width="5" height="2" fill="#a855f7" />
             <path
-              d={`M${shadowCx},2 C${shadowCx - 16},8 ${shadowCx - 22},24 ${shadowCx - 12},${vb - 4}`}
+              d={`M${shadowCx},2 C${shadowCx - 22},12 ${shadowCx - 30},34 ${shadowCx - 16},${vb - 4}`}
               fill="none"
               stroke="#f43f5e"
-              strokeWidth="4"
+              strokeWidth="5"
               strokeLinecap="square"
               className="animate-[slashArc_0.7s_ease-out_forwards]"
             />
@@ -117,7 +117,7 @@ export const PixelEnemy: React.FC<PixelEnemyProps> = ({
 
         {/* Enemy / Boss Active Block Shield & Deflection Ward */}
         {state === 'block' && (
-          <g transform={`translate(${useBossGrid ? 6 : 5}, ${useBossGrid ? 23 : 19})`}>
+          <g transform={`translate(${useBossGrid ? 9 : 7}, ${useBossGrid ? 34 : 26}) scale(${useBossGrid ? 1.45 : 1.25})`}>
             <g className="animate-[shieldWardPop_0.45s_ease-out_forwards]">
               <path
                 d="M2,-14 C-7,-7 -7,7 2,14"
