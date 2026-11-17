@@ -1,8 +1,9 @@
 import React from 'react';
 import { PlayerProfile, Stage } from '../../types/game';
+import { KNIGHT_SKILLS } from '../../data/knightSkills';
 import { PixelKnight } from '../pixel/PixelKnight';
 import { PixelEnemy } from '../pixel/PixelEnemy';
-import { Map, BookOpen, User, Flame, Compass, Eye, Shield } from 'lucide-react';
+import { Map, BookOpen, Flame, Compass, Eye, Shield } from 'lucide-react';
 import { soundEngine } from '../../utils/sound';
 
 interface ExplorationConsoleProps {
@@ -29,6 +30,8 @@ export const ExplorationConsole: React.FC<ExplorationConsoleProps> = ({
   const upcomingEnemy = stage.encounters[currentEncounterIndex];
   const isBoss = currentEncounterIndex === totalEncounters - 1;
   const codexTotal = Object.keys(profile.codex).length;
+  const knightSkill = KNIGHT_SKILLS[profile.gender];
+  const isFireKnight = knightSkill.magicType === 'fire';
 
   return (
     <div className="w-full max-w-4xl mx-auto h-full flex flex-col justify-between select-none py-1 px-1 sm:px-2">
@@ -142,9 +145,16 @@ export const ExplorationConsole: React.FC<ExplorationConsoleProps> = ({
             soundEngine.playKeyClick();
             onOpenProfile();
           }}
-          className="pixel-btn bg-gradient-to-r from-purple-900 to-slate-900 hover:from-purple-800 hover:to-slate-800 text-purple-200 border border-purple-500/60 py-2 sm:py-2.5 px-1.5 sm:px-2 rounded font-pixel text-[10px] sm:text-xs flex items-center justify-center gap-1 sm:gap-1.5 shadow-pixel cursor-pointer"
+          className={`pixel-btn border py-2 sm:py-2.5 px-1.5 sm:px-2 rounded font-pixel text-[10px] sm:text-xs flex items-center justify-center gap-1 sm:gap-1.5 shadow-pixel cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
+            isFireKnight
+              ? 'bg-gradient-to-r from-orange-950 to-red-950 hover:from-orange-900 hover:to-red-900 text-amber-200 border-orange-500/70'
+              : 'bg-gradient-to-r from-sky-950 to-cyan-950 hover:from-sky-900 hover:to-cyan-900 text-sky-200 border-sky-400/70'
+          }`}
+          title={`${knightSkill.title} Profile (${knightSkill.magicLabel})`}
         >
-          <User className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+          <span className="w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center overflow-hidden shrink-0">
+            <PixelKnight gender={profile.gender} state="idle" size={22} />
+          </span>
           <span className="whitespace-nowrap">PROFILE</span>
         </button>
       </div>

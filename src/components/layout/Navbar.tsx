@@ -1,9 +1,10 @@
 import React from 'react';
 import { DifficultyLevel, PlayerProfile } from '../../types/game';
+import { KNIGHT_SKILLS } from '../../data/knightSkills';
+import { PixelKnight } from '../pixel/PixelKnight';
 import {
   BookOpen,
   Map,
-  User,
   Volume2,
   VolumeX,
   Sparkles,
@@ -47,6 +48,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const badge = diffBadges[profile.currentDifficulty];
+  const knightSkill = KNIGHT_SKILLS[profile.gender];
+  const isFireKnight = knightSkill.magicType === 'fire';
 
   return (
     <header className="w-full bg-[#141224]/95 border-b-2 border-[#3b385e] px-2.5 sm:px-4 py-1.5 flex items-center justify-between select-none z-40 backdrop-blur-md shrink-0 h-11 sm:h-12">
@@ -110,17 +113,24 @@ export const Navbar: React.FC<NavbarProps> = ({
           </span>
         </button>
 
-        {/* Knight Profile */}
+        {/* Knight Hero / Profile Button */}
         <button
           type="button"
           onClick={() => {
             soundEngine.playKeyClick();
             onOpenProfile();
           }}
-          className="pixel-btn bg-slate-800 hover:bg-slate-700 text-gray-200 border border-slate-600 p-1 sm:px-2 sm:py-1 rounded text-[10px] font-pixel flex items-center gap-1 cursor-pointer"
-          title="Knight Profile & Gender Switch"
+          className={`pixel-btn p-1 sm:px-2 sm:py-1 rounded text-[10px] font-pixel flex items-center gap-1 cursor-pointer border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
+            isFireKnight
+              ? 'bg-orange-950/80 hover:bg-orange-900/80 text-amber-200 border-orange-400/70'
+              : 'bg-sky-950/80 hover:bg-sky-900/80 text-sky-200 border-sky-400/70'
+          }`}
+          title={`${knightSkill.title} Profile (${knightSkill.magicLabel})`}
+          aria-label={`Open ${knightSkill.title} Hero Profile`}
         >
-          <User className="w-3 h-3 text-sky-400" />
+          <span className="w-4 h-4 flex items-center justify-center overflow-hidden shrink-0">
+            <PixelKnight gender={profile.gender} state="idle" size={22} />
+          </span>
           <span className="hidden md:inline">HERO</span>
         </button>
 

@@ -1,11 +1,13 @@
 import React from 'react';
-import { Enemy, WordEntry } from '../../types/game';
+import { CharacterGender, Enemy, WordEntry } from '../../types/game';
+import { KNIGHT_SKILLS } from '../../data/knightSkills';
 import { Award, BookCheck, ArrowRight, Sparkles } from 'lucide-react';
 
 interface VictoryBannerProps {
   isOpen: boolean;
   targetWord: WordEntry;
   enemy: Enemy;
+  knightGender: CharacterGender;
   attemptsUsed: number;
   pointsEarned: number;
   isBoss: boolean;
@@ -16,6 +18,7 @@ export const VictoryBanner: React.FC<VictoryBannerProps> = ({
   isOpen,
   targetWord,
   enemy,
+  knightGender,
   attemptsUsed,
   pointsEarned,
   isBoss,
@@ -23,9 +26,13 @@ export const VictoryBanner: React.FC<VictoryBannerProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const isFirstTrySkill = attemptsUsed === 1;
+  const skill = KNIGHT_SKILLS[knightGender];
+  const isFire = skill.magicType === 'fire';
+
   // Attempt praise rank
   let praise = 'GREAT VICTORY!';
-  if (attemptsUsed === 1) praise = 'GENIUS! 1-SHOT CRITICAL!';
+  if (isFirstTrySkill) praise = `GENIUS! 1-SHOT ${skill.skillName}!`;
   else if (attemptsUsed === 2) praise = 'MASTERFUL TACTICS!';
   else if (attemptsUsed === 3) praise = 'HEROIC STRIKE!';
   else if (attemptsUsed === 4) praise = 'CLOSE COMBAT WIN!';
@@ -46,9 +53,21 @@ export const VictoryBanner: React.FC<VictoryBannerProps> = ({
           <Sparkles className="w-3.5 h-3.5" />
         </div>
 
-        <h2 className="text-xl sm:text-2xl font-pixel text-amber-400 tracking-wider mb-3">
-          {enemy.name.toUpperCase()} DEFEATED!
+        <h2 className="text-xl sm:text-2xl font-pixel text-amber-400 tracking-wider mb-2">
+          {enemy.name.toUpperCase()} {isFirstTrySkill ? (isFire ? 'BURNED!' : 'FROZEN!') : 'DEFEATED!'}
         </h2>
+
+        {isFirstTrySkill && (
+          <div
+            className={`inline-block mb-3 px-2.5 py-1 rounded border font-pixel text-[9px] ${
+              isFire
+                ? 'bg-orange-950/80 border-orange-400 text-orange-300'
+                : 'bg-sky-950/80 border-sky-400 text-sky-200'
+            }`}
+          >
+            {isFire ? '🔥' : '❄️'} {skill.deathEffectLabel} BY {skill.magicLabel.toUpperCase()}
+          </div>
+        )}
 
         {/* Word Learnt & Added to Codex */}
         <div className="bg-[#1b2540] border-2 border-amber-400/40 rounded p-4 text-left mb-4 shadow-inner">

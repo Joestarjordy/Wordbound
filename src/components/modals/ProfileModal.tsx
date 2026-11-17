@@ -1,7 +1,8 @@
 import React from 'react';
 import { CharacterGender, PlayerProfile } from '../../types/game';
+import { KNIGHT_SKILLS } from '../../data/knightSkills';
 import { PixelKnight } from '../pixel/PixelKnight';
-import { User, Trophy, Award, Flame, RefreshCw, X } from 'lucide-react';
+import { Trophy, Award, Flame, RefreshCw, X } from 'lucide-react';
 import { soundEngine } from '../../utils/sound';
 
 interface ProfileModalProps {
@@ -43,8 +44,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         {/* Header */}
         <div className="p-4 bg-[#1b1932] border-b-2 border-[#3b385e] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-sky-500/20 border border-sky-400 rounded text-sky-400">
-              <User className="w-5 h-5" />
+            <div
+              className={`w-10 h-10 rounded flex items-center justify-center overflow-hidden border ${
+                profile.gender === 'male'
+                  ? 'bg-orange-500/15 border-orange-400'
+                  : 'bg-sky-500/15 border-sky-400'
+              }`}
+            >
+              <PixelKnight gender={profile.gender} state="idle" size={34} />
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-pixel text-sky-400">
@@ -93,7 +100,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 </div>
                 <div className="text-center">
                   <div className="font-pixel text-xs text-white">MALE KNIGHT</div>
-                  <div className="text-[10px] text-sky-300">Silver Plate & Royal Blue Cape</div>
+                  <div className="text-[10px] text-sky-300">{KNIGHT_SKILLS.male.armorDesc}</div>
+                  <div className="text-[9px] font-pixel text-orange-300 mt-0.5">
+                    🔥 {KNIGHT_SKILLS.male.magicLabel}
+                  </div>
                 </div>
                 {profile.gender === 'male' && (
                   <span className="bg-sky-500 text-black font-pixel text-[9px] px-2 py-0.5 rounded font-bold">
@@ -117,7 +127,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 </div>
                 <div className="text-center">
                   <div className="font-pixel text-xs text-white">FEMALE KNIGHT</div>
-                  <div className="text-[10px] text-rose-300">Gold Filigree & Crimson Cloak</div>
+                  <div className="text-[10px] text-rose-300">{KNIGHT_SKILLS.female.armorDesc}</div>
+                  <div className="text-[9px] font-pixel text-cyan-300 mt-0.5">
+                    ❄️ {KNIGHT_SKILLS.female.magicLabel}
+                  </div>
                 </div>
                 {profile.gender === 'female' && (
                   <span className="bg-rose-500 text-white font-pixel text-[9px] px-2 py-0.5 rounded font-bold">

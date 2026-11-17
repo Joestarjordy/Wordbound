@@ -1,6 +1,16 @@
 export type CharacterGender = 'male' | 'female';
 export type CharacterClass = 'knight';
 export type DifficultyLevel = 'easy' | 'medium' | 'hard';
+export type KnightAnimState = 'walk' | 'idle' | 'attack' | 'ultimate' | 'hurt' | 'victory' | 'defeat';
+export type EnemyAnimState =
+  | 'idle'
+  | 'attack'
+  | 'block'
+  | 'ultimate'
+  | 'hurt'
+  | 'defeated'
+  | 'burned'
+  | 'frozen';
 
 export interface WordEntry {
   word: string; // 4 to 8 uppercase letters

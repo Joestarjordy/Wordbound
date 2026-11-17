@@ -425,6 +425,54 @@ class SoundEngine {
     noise.start();
   }
 
+  public playFreeze() {
+    if (this.sfxMuted) return;
+    const ctx = this.initCtx();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    // Crystalline frost chime sweep + crisp ice-shatter crackle
+    const crystalNotes = [1174.66, 1567.98, 2093.0]; // D6, G6, C7
+    crystalNotes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      const t = now + idx * 0.04;
+      osc.frequency.setValueAtTime(freq, t);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.15, t + 0.16);
+
+      gain.gain.setValueAtTime(0.22, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain || ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.22);
+    });
+
+    const bufferSize = Math.floor(ctx.sampleRate * 0.2);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.05));
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(3200, now + 0.12);
+
+    const shatterGain = ctx.createGain();
+    shatterGain.gain.setValueAtTime(0.26, now + 0.12);
+    shatterGain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+
+    noise.connect(filter);
+    filter.connect(shatterGain);
+    shatterGain.connect(this.masterGain || ctx.destination);
+    noise.start(now + 0.12);
+  }
+
   public playAstralCrit() {
     if (this.sfxMuted) return;
     const ctx = this.initCtx();

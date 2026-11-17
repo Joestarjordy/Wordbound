@@ -1,5 +1,6 @@
 import React from 'react';
-import { CharacterGender, Enemy, Stage } from '../../types/game';
+import { CharacterGender, Enemy, EnemyAnimState, KnightAnimState, Stage } from '../../types/game';
+import { KNIGHT_SKILLS } from '../../data/knightSkills';
 import { PixelKnight } from './PixelKnight';
 import { PixelEnemy } from './PixelEnemy';
 import { RealmBackdrop } from './RealmBackdrop';
@@ -43,9 +44,9 @@ interface PixelSceneProps {
   totalEncounters: number;
   inCombat: boolean;
   knightGender: CharacterGender;
-  knightState: 'walk' | 'idle' | 'attack' | 'ultimate' | 'hurt' | 'victory' | 'defeat';
+  knightState: KnightAnimState;
   currentEnemy: Enemy | null;
-  enemyState: 'idle' | 'attack' | 'block' | 'ultimate' | 'hurt' | 'defeated';
+  enemyState: EnemyAnimState;
   cutInState?: 'knight' | 'enemy' | null;
   floatingText: { id: number; text: string; color: string; isCrit?: boolean }[];
   explorationProgress: number; // 0 to 100% walking to next encounter
@@ -73,9 +74,13 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
   enemyMaxHp,
 }) => {
   const isBossEncounter = currentEncounterIndex === totalEncounters - 1;
+  const isFireKnight = knightGender === 'male';
+  const knightSkill = KNIGHT_SKILLS[knightGender];
   const hasShake =
     knightState === 'hurt' ||
     enemyState === 'hurt' ||
+    enemyState === 'burned' ||
+    enemyState === 'frozen' ||
     knightState === 'ultimate' ||
     enemyState === 'ultimate';
 
@@ -157,17 +162,25 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
         </div>
       )}
 
-      {/* Full-scene flashes: white on enemy hit, red on knight hit, gold/crimson on ultimate */}
-      {(enemyState === 'hurt' || enemyState === 'defeated') && (
+      {/* Full-scene flashes: white/elemental on enemy hit, red on knight hit, fire/frost on ultimate */}
+      {(enemyState === 'hurt' || enemyState === 'defeated' || enemyState === 'burned' || enemyState === 'frozen') && (
         <div
           key={`flash-e-${enemyState}`}
-          className="fx-motion absolute inset-0 bg-white pointer-events-none z-20 animate-[hitFlash_0.3s_ease-out_forwards]"
+          className={`fx-motion absolute inset-0 pointer-events-none z-20 animate-[hitFlash_0.34s_ease-out_forwards] ${
+            enemyState === 'burned'
+              ? 'bg-orange-400'
+              : enemyState === 'frozen'
+              ? 'bg-sky-300'
+              : 'bg-white'
+          }`}
         />
       )}
       {knightState === 'ultimate' && (
         <div
           key="flash-k-ult"
-          className="fx-motion absolute inset-0 bg-amber-300 pointer-events-none z-20 animate-[hitFlash_0.55s_ease-out_forwards]"
+          className={`fx-motion absolute inset-0 pointer-events-none z-20 animate-[hitFlash_0.55s_ease-out_forwards] ${
+            isFireKnight ? 'bg-orange-400' : 'bg-cyan-300'
+          }`}
         />
       )}
       {knightState === 'hurt' && (
@@ -444,24 +457,46 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
                 </div>
               )}
 
-              {/* Knight Ultimate Finisher FX on the Enemy */}
+              {/* Knight Ultimate Finisher FX on the Enemy (Fire for Male, Frost for Female) */}
               {knightState === 'ultimate' && (
                 <div
                   key="knight-ult-pillar"
                   className="absolute left-1/2 -translate-x-1/2 bottom-0 pointer-events-none z-25 flex flex-col items-center"
                   aria-hidden="true"
                 >
-                  {/* Golden/Cyan Excalibur Sky Beam Pillar */}
-                  <div className="fx-motion w-20 sm:w-28 h-64 bg-gradient-to-t from-amber-300 via-sky-300/95 to-transparent animate-[ultimateBeam_0.8s_ease-out_forwards]" />
-                  <div className="fx-motion absolute bottom-0 w-8 sm:w-10 h-64 bg-gradient-to-t from-white via-amber-100 to-transparent animate-[ultimateBeam_0.68s_ease-out_forwards]" />
-                  {/* Celestial Stepped Pixel Shockwave Frames */}
-                  <div className="fx-motion absolute bottom-6 w-32 h-32 border-4 border-amber-300 animate-[pixelRingPop_0.65s_ease-out_forwards]" />
-                  <div className="fx-motion absolute bottom-8 w-24 h-24 border-2 border-sky-300 animate-[pixelRingPop_0.5s_ease-out_forwards]" />
-                  {/* Starburst Dark-Outlined Slashes */}
+                  {/* Elemental Sky Beam Pillar */}
+                  <div
+                    className={`fx-motion w-20 sm:w-28 h-64 bg-gradient-to-t animate-[ultimateBeam_0.85s_ease-out_forwards] ${
+                      isFireKnight
+                        ? 'from-red-600 via-orange-400/95 to-transparent'
+                        : 'from-blue-600 via-cyan-300/95 to-transparent'
+                    }`}
+                  />
+                  <div
+                    className={`fx-motion absolute bottom-0 w-8 sm:w-10 h-64 bg-gradient-to-t animate-[ultimateBeam_0.7s_ease-out_forwards] ${
+                      isFireKnight
+                        ? 'from-white via-amber-200 to-transparent'
+                        : 'from-white via-sky-100 to-transparent'
+                    }`}
+                  />
+                  {/* Elemental Stepped Pixel Shockwave Frames */}
+                  <div
+                    className={`fx-motion absolute bottom-6 w-32 h-32 border-4 animate-[pixelRingPop_0.65s_ease-out_forwards] ${
+                      isFireKnight ? 'border-orange-400' : 'border-cyan-300'
+                    }`}
+                  />
+                  <div
+                    className={`fx-motion absolute bottom-8 w-24 h-24 border-2 animate-[pixelRingPop_0.5s_ease-out_forwards] ${
+                      isFireKnight ? 'border-amber-200' : 'border-sky-100'
+                    }`}
+                  />
+                  {/* Starburst Dark-Outlined Elemental Slashes */}
                   {[25, -25, 65, -65, 0].map((rot) => (
                     <div
                       key={rot}
-                      className="fx-motion absolute bottom-12 -left-[60px] w-[120px] h-[6px] bg-amber-100 border border-[#0d0a18] animate-[slashCross_0.5s_ease-out_forwards]"
+                      className={`fx-motion absolute bottom-12 -left-[60px] w-[120px] h-[6px] border border-[#0d0a18] animate-[slashCross_0.5s_ease-out_forwards] ${
+                        isFireKnight ? 'bg-amber-200' : 'bg-sky-100'
+                      }`}
                       style={{ ['--rot' as string]: `${rot}deg` }}
                     />
                   ))}
@@ -472,7 +507,13 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
                       style={{
                         width: s.size + 1,
                         height: s.size + 1,
-                        backgroundColor: i % 2 === 0 ? '#7dd3fc' : '#fde047',
+                        backgroundColor: isFireKnight
+                          ? i % 2 === 0
+                            ? '#f97316'
+                            : '#fef08a'
+                          : i % 2 === 0
+                          ? '#38bdf8'
+                          : '#e0f2fe',
                         ['--sx' as string]: `${Math.round(s.x * 1.25)}px`,
                         ['--sy' as string]: `${Math.round(s.y * 1.25)}px`,
                       }}
@@ -481,8 +522,11 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
                 </div>
               )}
 
-              {/* Impact FX on the enemy when hit */}
-              {(enemyState === 'hurt' || enemyState === 'defeated') && (
+              {/* Impact FX on the enemy when hit or killed (Normal / Burned / Frozen) */}
+              {(enemyState === 'hurt' ||
+                enemyState === 'defeated' ||
+                enemyState === 'burned' ||
+                enemyState === 'frozen') && (
                 <div
                   key={`impact-${enemyState}`}
                   className="absolute left-1/2 -translate-x-1/2 pointer-events-none z-20"
@@ -491,28 +535,54 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
                 >
                   <div className="relative w-0 h-0">
                     {/* Expanding Stepped Pixel Shockwave */}
-                    <div className="fx-motion absolute -left-[34px] -top-[34px] w-[68px] h-[68px] border-2 border-amber-200 animate-[pixelRingPop_0.42s_ease-out_forwards]" />
+                    <div
+                      className={`fx-motion absolute -left-[34px] -top-[34px] w-[68px] h-[68px] border-2 animate-[pixelRingPop_0.45s_ease-out_forwards] ${
+                        enemyState === 'burned'
+                          ? 'border-orange-400'
+                          : enemyState === 'frozen'
+                          ? 'border-cyan-200'
+                          : 'border-amber-200'
+                      }`}
+                    />
                     {/* Dan the Man Style Layered Comic Starburst */}
                     <svg
                       width="94"
                       height="94"
                       viewBox="-47 -47 94 94"
                       shapeRendering="crispEdges"
-                      className="fx-motion absolute -left-[47px] -top-[47px] overflow-visible animate-[impactBurst_0.45s_ease-out_forwards]"
+                      className="fx-motion absolute -left-[47px] -top-[47px] overflow-visible animate-[impactBurst_0.48s_ease-out_forwards]"
                     >
                       <polygon
                         points="0,-42 9,-13 40,-15 15,5 25,36 0,17 -25,36 -15,5 -40,-15 -9,-13"
-                        fill="#f97316"
+                        fill={
+                          enemyState === 'burned'
+                            ? '#dc2626'
+                            : enemyState === 'frozen'
+                            ? '#0284c7'
+                            : '#f97316'
+                        }
                         stroke="#0d0a18"
                         strokeWidth="4"
                       />
                       <polygon
                         points="0,-30 6,-9 28,-10 10,3 17,25 0,11 -17,25 -10,3 -28,-10 -6,-9"
-                        fill="#fef08a"
+                        fill={
+                          enemyState === 'burned'
+                            ? '#fb923c'
+                            : enemyState === 'frozen'
+                            ? '#7dd3fc'
+                            : '#fef08a'
+                        }
                       />
                       <polygon
                         points="0,-16 4,-5 15,-5 5,2 9,14 0,6 -9,14 -5,2 -15,-5 -4,-5"
-                        fill="#ffffff"
+                        fill={
+                          enemyState === 'burned'
+                            ? '#fef08a'
+                            : enemyState === 'frozen'
+                            ? '#ffffff'
+                            : '#ffffff'
+                        }
                       />
                     </svg>
                     {/* Pixel Crescent Slash Overlay */}
@@ -526,7 +596,13 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
                     >
                       <path
                         d="M5 4 H13 V6 H17 V10 H19 V16 H16 V20 H11 V18 H14 V15 H15 V10 H12 V7 H5 Z"
-                        fill="#ffffff"
+                        fill={
+                          enemyState === 'burned'
+                            ? '#fef08a'
+                            : enemyState === 'frozen'
+                            ? '#bae6fd'
+                            : '#ffffff'
+                        }
                         stroke="#0d0a18"
                         strokeWidth="1"
                       />
@@ -534,18 +610,33 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
                     {[45, -45].map((rot) => (
                       <div
                         key={rot}
-                        className="fx-motion absolute -left-[42px] -top-[3px] w-[84px] h-[6px] bg-white border border-[#0d0a18] animate-[slashCross_0.4s_ease-out_forwards]"
+                        className={`fx-motion absolute -left-[42px] -top-[3px] w-[84px] h-[6px] border border-[#0d0a18] animate-[slashCross_0.4s_ease-out_forwards] ${
+                          enemyState === 'burned'
+                            ? 'bg-orange-200'
+                            : enemyState === 'frozen'
+                            ? 'bg-sky-100'
+                            : 'bg-white'
+                        }`}
                         style={{ ['--rot' as string]: `${rot}deg` }}
                       />
                     ))}
                     {SPARKS.map((s, i) => (
                       <div
                         key={i}
-                        className="fx-motion absolute border border-[#0d0a18] animate-[sparkFly_0.52s_ease-out_forwards]"
+                        className="fx-motion absolute border border-[#0d0a18] animate-[sparkFly_0.55s_ease-out_forwards]"
                         style={{
                           width: s.size,
                           height: s.size,
-                          backgroundColor: s.color,
+                          backgroundColor:
+                            enemyState === 'burned'
+                              ? i % 2 === 0
+                                ? '#f97316'
+                                : '#fef08a'
+                              : enemyState === 'frozen'
+                              ? i % 2 === 0
+                                ? '#38bdf8'
+                                : '#e0f2fe'
+                              : s.color,
                           ['--sx' as string]: `${s.x}px`,
                           ['--sy' as string]: `${s.y}px`,
                         }}
@@ -613,47 +704,81 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
         </div>
       </div>
 
-      {/* JRPG / Anime Skill Cut-In Banner Overlay */}
+      {/* JRPG / Anime Elemental Skill Cut-In Banner Overlay */}
       {cutInState === 'knight' && (
         <div
           key="cutin-knight"
           className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center overflow-hidden bg-slate-950/75 animate-[cutInBackdrop_0.85s_ease-out_forwards]"
           aria-hidden="true"
         >
-          <div className="relative w-[112%] h-24 sm:h-28 bg-gradient-to-r from-sky-950 via-sky-600 to-amber-500 border-y-4 border-amber-200 flex items-center justify-between px-6 sm:px-14 overflow-hidden animate-[cutInSlideKnight_0.85s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+          <div
+            className={`relative w-[112%] h-24 sm:h-28 border-y-4 flex items-center justify-between px-6 sm:px-14 overflow-hidden animate-[cutInSlideKnight_0.85s_cubic-bezier(0.16,1,0.3,1)_forwards] ${
+              isFireKnight
+                ? 'bg-gradient-to-r from-red-950 via-orange-600 to-amber-400 border-amber-200'
+                : 'bg-gradient-to-r from-slate-950 via-cyan-600 to-sky-300 border-sky-100'
+            }`}
+          >
             {/* Speed lines */}
             <div className="absolute inset-0 opacity-35 pointer-events-none animate-[speedLinesMove_0.35s_linear_infinite]">
               <div className="w-[160%] h-1.5 bg-white/80 my-2.5" />
-              <div className="w-[160%] h-0.5 bg-amber-200 my-4 translate-x-8" />
-              <div className="w-[160%] h-2 bg-sky-200/70 my-3 -translate-x-6" />
+              <div
+                className={`w-[160%] h-0.5 my-4 translate-x-8 ${
+                  isFireKnight ? 'bg-amber-200' : 'bg-cyan-100'
+                }`}
+              />
+              <div
+                className={`w-[160%] h-2 my-3 -translate-x-6 ${
+                  isFireKnight ? 'bg-orange-200/70' : 'bg-sky-200/70'
+                }`}
+              />
               <div className="w-[160%] h-1 bg-white/90 my-3.5 translate-x-4" />
             </div>
 
             {/* Close-up Knight Portrait */}
             <div className="relative z-10 flex items-center gap-3 sm:gap-5">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-sky-950/90 border-2 border-amber-300 flex items-center justify-center overflow-hidden shrink-0">
+              <div
+                className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 flex items-center justify-center overflow-hidden shrink-0 ${
+                  isFireKnight
+                    ? 'bg-red-950/90 border-amber-300'
+                    : 'bg-slate-950/90 border-sky-200'
+                }`}
+              >
                 <PixelKnight
                   gender={knightGender}
-                  state="attack"
+                  state="ultimate"
                   size={86}
                   className="scale-125 translate-y-2"
                 />
               </div>
               <div className="flex flex-col">
-                <span className="font-pixel text-[8px] sm:text-[10px] text-amber-200 tracking-widest uppercase">
-                  ⚡ FIRST-TRY PERFECT CRACK! ⚡
+                <span
+                  className={`font-pixel text-[8px] sm:text-[10px] tracking-widest uppercase ${
+                    isFireKnight ? 'text-amber-200' : 'text-sky-100'
+                  }`}
+                >
+                  {isFireKnight ? '🔥' : '❄️'} FIRST-TRY PERFECT CRACK! {isFireKnight ? '🔥' : '❄️'}
                 </span>
-                <span className="font-pixel text-sm sm:text-xl md:text-2xl text-white font-bold tracking-wider drop-shadow-[0_2px_0_#0284c7]">
-                  AETHERIAL EXCALIBUR!
+                <span
+                  className={`font-pixel text-sm sm:text-xl md:text-2xl text-white font-bold tracking-wider ${
+                    isFireKnight
+                      ? 'drop-shadow-[0_2px_0_#9a3412]'
+                      : 'drop-shadow-[0_2px_0_#0369a1]'
+                  }`}
+                >
+                  {knightSkill.skillName}!
                 </span>
-                <span className="font-mono text-[9px] sm:text-xs text-sky-100 font-bold">
-                  ULTIMATE SKILL UNLEASHED — INSTANT OBLITERATION
+                <span
+                  className={`font-mono text-[9px] sm:text-xs font-bold ${
+                    isFireKnight ? 'text-amber-100' : 'text-cyan-100'
+                  }`}
+                >
+                  {knightSkill.cutInSubtitle}
                 </span>
               </div>
             </div>
 
-            <div className="hidden sm:flex items-center justify-center text-3xl font-pixel text-amber-200 opacity-80">
-              ✦⚔️✦
+            <div className="hidden sm:flex items-center justify-center text-3xl font-pixel text-white opacity-85">
+              {isFireKnight ? '🔥⚔️🔥' : '❄️⚔️❄️'}
             </div>
           </div>
         </div>

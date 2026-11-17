@@ -494,3 +494,47 @@
   25% { opacity: 0.95; transform: translateX(0) scaleX(1.1); }
   100% { opacity: 0; transform: translateX(-28px) scaleX(0.6); }
 }
+
+/* --- Elemental Burn & Freeze Death Animations --- */
+@keyframes enemyBurnDeath {
+  0% { opacity: 1; transform: scale(1) translateY(0); }
+  16% { opacity: 1; transform: scale(1.08) translateX(6px); }
+  36% { opacity: 0.95; transform: scale(1.03) translateX(-4px); }
+  68% { opacity: 0.65; transform: scale(0.84, 0.72) translateY(10px); }
+  100% { opacity: 0; transform: scale(0.42, 0.28) translateY(22px); }
+}
+
+@keyframes flameFlicker {
+  0% { opacity: 0.95; transform: translateY(2px) scale(0.92, 0.95); }
+  35% { opacity: 1; transform: translateY(-4px) scale(1.06, 1.15); }
+  70% { opacity: 0.85; transform: translateY(-8px) scale(0.96, 1.05); }
+  100% { opacity: 0; transform: translateY(-16px) scale(0.7, 0.8); }
+}
+
+@keyframes emberRise {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  25% { opacity: 1; transform: translate(var(--ex, 6px), -14px) scale(1.1); }
+  100% { opacity: 0; transform: translate(var(--ex2, -8px), -42px) scale(0.35); }
+}
+
+@keyframes enemyFreezeDeath {
+  0% { opacity: 1; transform: scale(1); }
+  14% { opacity: 1; transform: scale(1.04) translateX(-4px); }
+  26% { opacity: 1; transform: scale(1.02) translateX(4px); }
+  40%, 72% { opacity: 0.95; transform: scale(1.03) translateX(0); }
+  88% { opacity: 0.55; transform: scale(1.08) translateY(4px); }
+  100% { opacity: 0; transform: scale(1.18) translateY(14px); }
+}
+
+@keyframes iceCrystalPop {
+  0% { opacity: 0; transform: scale(0.45); }
+  22% { opacity: 0.92; transform: scale(1.06); }
+  70% { opacity: 0.9; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.16); }
+}
+
+@keyframes frostShardFloat {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.5) rotate(0deg); }
+  30% { opacity: 1; transform: translate(var(--fx, 14px), var(--fy, -12px)) scale(1.1) rotate(45deg); }
+  100% { opacity: 0; transform: translate(var(--fx2, 26px), var(--fy2, 8px)) scale(0.35) rotate(90deg); }
+}

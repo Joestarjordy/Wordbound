@@ -1,6 +1,8 @@
 import React from 'react';
-import { BookOpen, Map, Play, Swords, User } from 'lucide-react';
+import { BookOpen, Map, Play, Swords } from 'lucide-react';
 import { PlayerProfile } from '../../types/game';
+import { KNIGHT_SKILLS } from '../../data/knightSkills';
+import { PixelKnight } from '../pixel/PixelKnight';
 
 interface MainMenuProps {
   profile: PlayerProfile;
@@ -17,6 +19,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   onOpenStageSelect,
   onOpenProfile,
 }) => {
+  const knightSkill = KNIGHT_SKILLS[profile.gender];
+  const isFireKnight = knightSkill.magicType === 'fire';
+
   return (
     <main className="relative min-h-screen min-h-[100dvh] overflow-hidden bg-[#0b0a14] text-gray-100 flex items-center justify-center px-4 py-8">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(17,138,178,0.2),transparent_38%),linear-gradient(180deg,#141224_0%,#0b0a14_78%)]" />
@@ -65,10 +70,17 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             <button
               type="button"
               onClick={onOpenProfile}
-              className="pixel-btn bg-slate-800 hover:bg-slate-700 text-gray-200 border border-slate-600 py-2 px-1 rounded text-[9px] font-pixel cursor-pointer"
+              className={`pixel-btn border py-2 px-1 rounded text-[9px] font-pixel cursor-pointer flex items-center justify-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
+                isFireKnight
+                  ? 'bg-orange-950/70 hover:bg-orange-900/70 text-amber-200 border-orange-500/60'
+                  : 'bg-sky-950/70 hover:bg-sky-900/70 text-sky-200 border-sky-500/60'
+              }`}
+              title={`${knightSkill.title} Profile (${knightSkill.magicLabel})`}
             >
-              <User className="w-3.5 h-3.5 mr-1 text-sky-400" />
-              PROFILE
+              <span className="w-4 h-4 flex items-center justify-center overflow-hidden shrink-0">
+                <PixelKnight gender={profile.gender} state="idle" size={20} />
+              </span>
+              <span>PROFILE</span>
             </button>
           </div>
 

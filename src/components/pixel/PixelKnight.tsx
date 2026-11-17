@@ -1,10 +1,10 @@
 import React, { useId } from 'react';
-import { CharacterGender } from '../../types/game';
+import { CharacterGender, KnightAnimState } from '../../types/game';
 import { compilePixelGrid, CompiledRect, PixelLayer } from './sprites/pixelUtils';
 
 interface PixelKnightProps {
   gender: CharacterGender;
-  state: 'walk' | 'idle' | 'attack' | 'ultimate' | 'hurt' | 'victory' | 'defeat';
+  state: KnightAnimState;
   size?: number;
   className?: string;
 }
@@ -29,6 +29,9 @@ const MALE_PALETTE: Record<string, string> = {
   w: '#ffffff', // eye white / glint
   e: '#0284c7', // heroic eye iris
   k: '#0d0a18', // ink dark crease / brow
+  u: '#f97316', // Fire Sword Magic mid flame
+  U: '#fef08a', // Fire Sword Magic solar core
+  g: '#dc2626', // Fire Sword Magic deep ember
 };
 
 const FEMALE_PALETTE: Record<string, string> = {
@@ -51,6 +54,9 @@ const FEMALE_PALETTE: Record<string, string> = {
   w: '#ffffff', // eye white / glint
   e: '#0d9488', // emerald-teal eye iris
   k: '#0d0a18', // ink dark crease / brow
+  u: '#38bdf8', // Frost Sword Magic mid crystal
+  U: '#e0f2fe', // Frost Sword Magic glacial core
+  g: '#0284c7', // Frost Sword Magic deep cryo
 };
 
 // --- Cape Layers ---
@@ -310,15 +316,15 @@ function buildSwordSprites(p: Record<string, string>) {
     ultimateSword: compilePixelGrid(
       [
         '.................www',
-        '................wcww',
-        '...............wcwww',
-        '..............wctcw.',
-        '.............wctcw..',
-        '............wctcw...',
-        '...........wctcw....',
-        '..........wctcw.....',
-        '.........wctcw......',
-        '.......ttTctw.......',
+        '................wUww',
+        '...............gUuww',
+        '..............guUwg.',
+        '.............guUwg..',
+        '............guUwg...',
+        '...........guUwg....',
+        '..........guUwg.....',
+        '.........guUwg......',
+        '.......ttTUuw.......',
         '......tTTetw........',
         '....ttTettt.........',
         '...tTlllt...........',
@@ -395,9 +401,13 @@ export const PixelKnight: React.FC<PixelKnightProps> = ({
   const uid = useId().replace(/:/g, '');
   const victoryGlowId = `victoryGlow-${uid}`;
   const slashGradId = `slashGrad-${uid}`;
+  const ultAuraId = `ultAura-${uid}`;
 
   const isFemale = gender === 'female';
   const sprites = isFemale ? SPRITE_CACHE.female : SPRITE_CACHE.male;
+  const elemPrimary = isFemale ? '#38bdf8' : '#f97316';
+  const elemCore = isFemale ? '#e0f2fe' : '#fef08a';
+  const elemDeep = isFemale ? '#0284c7' : '#dc2626';
 
   let animClass = '';
   if (state === 'walk') animClass = 'animate-[knightWalk_0.6s_ease-in-out_infinite]';
@@ -430,14 +440,19 @@ export const PixelKnight: React.FC<PixelKnightProps> = ({
       >
         <defs>
           <linearGradient id={slashGradId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.95" />
-            <stop offset="50%" stopColor="#fef08a" stopOpacity="0.85" />
+            <stop offset="0%" stopColor={state === 'ultimate' ? elemPrimary : '#38bdf8'} stopOpacity="0.95" />
+            <stop offset="50%" stopColor={state === 'ultimate' ? elemCore : '#fef08a'} stopOpacity="0.88" />
             <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
           </linearGradient>
           <radialGradient id={victoryGlowId} cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#fef08a" stopOpacity="1" />
             <stop offset="70%" stopColor="#f59e0b" stopOpacity="0.45" />
             <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id={ultAuraId} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor={elemCore} stopOpacity="1" />
+            <stop offset="65%" stopColor={elemPrimary} stopOpacity="0.5" />
+            <stop offset="100%" stopColor={elemDeep} stopOpacity="0" />
           </radialGradient>
         </defs>
 
@@ -453,22 +468,24 @@ export const PixelKnight: React.FC<PixelKnightProps> = ({
           style={{ transformOrigin: '20px 35px' }}
         />
 
-        {/* Ultimate Aura */}
+        {/* Elemental Ultimate Aura (Fire for Male, Frost for Female) */}
         {state === 'ultimate' && (
           <g>
-            <circle cx="20" cy="20" r="19" fill={`url(#${victoryGlowId})`} opacity="0.85" />
+            <circle cx="20" cy="20" r="19" fill={`url(#${ultAuraId})`} opacity="0.9" />
             <circle
               cx="20"
               cy="20"
               r="16"
               fill="none"
-              stroke="#38bdf8"
-              strokeWidth="1"
+              stroke={elemPrimary}
+              strokeWidth="1.2"
               strokeDasharray="3,2"
             />
-            <rect x="19" y="0" width="2" height="4" fill="#fef08a" />
-            <rect x="1" y="14" width="3" height="2" fill="#38bdf8" />
-            <rect x="36" y="14" width="3" height="2" fill="#38bdf8" />
+            <rect x="19" y="0" width="2" height="4" fill={elemCore} />
+            <rect x="1" y="14" width="3" height="2" fill={elemPrimary} />
+            <rect x="36" y="14" width="3" height="2" fill={elemPrimary} />
+            <rect x="6" y="5" width="2" height="2" fill={elemCore} />
+            <rect x="32" y="5" width="2" height="2" fill={elemCore} />
           </g>
         )}
 
@@ -543,7 +560,7 @@ export const PixelKnight: React.FC<PixelKnightProps> = ({
             <path
               d="M21,2 C43,4 48,20 40,37"
               fill="none"
-              stroke="#fef08a"
+              stroke={elemCore}
               strokeWidth="5"
               strokeLinecap="square"
               className="animate-[slashArc_0.7s_ease-out_forwards]"
@@ -561,6 +578,10 @@ export const PixelKnight: React.FC<PixelKnightProps> = ({
               style={{ transformOrigin: '26px 16px' }}
             >
               <PixelLayer rects={sprites.sword.ultimateSword} />
+              {/* Fire embers or Frost crystals orbiting blade */}
+              <rect x="34" y="6" width="2" height="2" fill={elemCore} />
+              <rect x="41" y="3" width="2" height="2" fill={elemPrimary} />
+              <rect x="30" y="12" width="2" height="2" fill={elemPrimary} />
             </g>
           </g>
         ) : state === 'attack' ? (

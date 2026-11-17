@@ -4,11 +4,14 @@ import {
   CombatState,
   DifficultyLevel,
   Enemy,
+  EnemyAnimState,
+  KnightAnimState,
   LetterTile,
   PlayerProfile,
   Stage,
   WordEntry,
 } from './types/game';
+import { KNIGHT_SKILLS } from './data/knightSkills';
 import {
   addWordToCodex,
   checkAndUnlockDifficulties,
@@ -34,10 +37,11 @@ import { StageSelectModal } from './components/modals/StageSelectModal';
 import { ProfileModal } from './components/modals/ProfileModal';
 import { IntroScreen } from './components/layout/IntroScreen';
 import { MainMenu } from './components/layout/MainMenu';
+import { CharacterSelectScreen } from './components/layout/CharacterSelectScreen';
 import { Maximize } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const [screen, setScreen] = useState<'intro' | 'menu' | 'game'>('intro');
+  const [screen, setScreen] = useState<'intro' | 'menu' | 'character-select' | 'game'>('intro');
 
   // --- Player Profile State ---
   const [profile, setProfile] = useState<PlayerProfile>(() => loadProfile());
@@ -57,12 +61,8 @@ export const App: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // --- Enhanced Animation States ---
-  const [knightState, setKnightState] = useState<
-    'walk' | 'idle' | 'attack' | 'ultimate' | 'hurt' | 'victory' | 'defeat'
-  >('walk');
-  const [enemyState, setEnemyState] = useState<
-    'idle' | 'attack' | 'block' | 'ultimate' | 'hurt' | 'defeated'
-  >('idle');
+  const [knightState, setKnightState] = useState<KnightAnimState>('walk');
+  const [enemyState, setEnemyState] = useState<EnemyAnimState>('idle');
   const [cutInState, setCutInState] = useState<'knight' | 'enemy' | null>(null);
   const [floatingText, setFloatingText] = useState<
     { id: number; text: string; color: string; isCrit?: boolean }[]
@@ -564,7 +564,10 @@ export const App: React.FC = () => {
       };
 
       if (isFirstTryUltimate) {
-        // 1st-Try Perfect Crack: Trigger Knight Skill Cut-in Banner -> Knight Ultimate Skill -> Victory
+        // 1st-Try Perfect Crack: Trigger Elemental Knight Skill Cut-in -> Fire (Male) or Frost (Female) Ultimate -> Burned/Frozen Death
+        const activeSkill = KNIGHT_SKILLS[profile.gender];
+        const isFire = activeSkill.magicType === 'fire';
+
         setCutInState('knight');
         soundEngine.playUltimateCutIn('knight');
 
@@ -575,17 +578,24 @@ export const App: React.FC = () => {
         }, 800);
 
         scheduleCombatTimer(() => {
-          setEnemyState('defeated');
+          setEnemyState(isFire ? 'burned' : 'frozen');
+          if (isFire) {
+            soundEngine.playBurn();
+          } else {
+            soundEngine.playFreeze();
+          }
           soundEngine.playHit();
           spawnFloatingText(
-            `⚡ EXCALIBUR ULTIMATE! -${damageDealt} HP ⚡`,
-            '#facc15',
+            isFire
+              ? `🔥 ${activeSkill.skillName}! BURNED! -${damageDealt} HP 🔥`
+              : `❄️ ${activeSkill.skillName}! FROZEN! -${damageDealt} HP ❄️`,
+            activeSkill.accentColor,
             true
           );
           setCombatState((curr) => (curr ? { ...curr, enemyHp: 0 } : curr));
         }, 1150);
 
-        scheduleCombatTimer(finalizeVictory, 1850);
+        scheduleCombatTimer(finalizeVictory, 2100);
       } else {
         // Normal Crack (Attempts 2–4): Standard slash attack -> Victory
         setKnightState('attack');
@@ -704,7 +714,7 @@ export const App: React.FC = () => {
       setEnemyState('idle');
       setKnightState('idle');
     }, 1300);
-  }, [scheduleCombatTimer, spawnFloatingText]);
+  }, [profile.gender, scheduleCombatTimer, spawnFloatingText]);
 
   // --- Resume Journey after Victory ---
   const handleVictoryContinue = useCallback(() => {
@@ -882,11 +892,20 @@ export const App: React.FC = () => {
             setIsCodexOpen(false);
             setIsStageSelectOpen(false);
             setIsProfileOpen(false);
-            setScreen('game');
+            setScreen('character-select');
           }}
           onOpenCodex={() => setIsCodexOpen(true)}
           onOpenStageSelect={() => setIsStageSelectOpen(true)}
           onOpenProfile={() => setIsProfileOpen(true)}
+        />
+      )}
+
+      {screen === 'character-select' && (
+        <CharacterSelectScreen
+          selectedGender={profile.gender}
+          onSelectGender={handleChangeGender}
+          onConfirm={() => setScreen('game')}
+          onBack={() => setScreen('menu')}
         />
       )}
 
@@ -996,6 +1015,7 @@ export const App: React.FC = () => {
           isOpen={isVictoryOpen}
           targetWord={combatState.targetEntry}
           enemy={combatState.enemy}
+          knightGender={profile.gender}
           attemptsUsed={combatState.guesses.length}
           pointsEarned={combatState.earnedPoints}
           isBoss={combatState.enemy.type === 'boss'}
