@@ -1,8 +1,10 @@
 import React, { useId } from 'react';
 import { Enemy, EnemyAnimState } from '../../types/game';
+import { getEnemySpell } from '../../data/enemySpells';
+import { getEnemyBaseSize } from '../../data/enemyScale';
 import { PixelLayer } from './sprites/pixelUtils';
-import { COMMON_ENEMY_SPRITES, CommonSpriteKey } from './sprites/commonEnemySprites';
-import { BOSS_ENEMY_SPRITES, BossSpriteKey } from './sprites/bossEnemySprites';
+import { COMMON_ENEMY_LAYERS, CommonSpriteKey } from './sprites/commonEnemySprites';
+import { BOSS_ENEMY_LAYERS, BossSpriteKey } from './sprites/bossEnemySprites';
 
 interface PixelEnemyProps {
   enemy: Enemy;
@@ -27,7 +29,7 @@ const FROST_SHARDS = [
 ] as const;
 
 function isBossSprite(spriteType: Enemy['spriteType']): spriteType is BossSpriteKey {
-  return spriteType in BOSS_ENEMY_SPRITES;
+  return spriteType in BOSS_ENEMY_LAYERS;
 }
 
 export const PixelEnemy: React.FC<PixelEnemyProps> = ({
@@ -42,14 +44,17 @@ export const PixelEnemy: React.FC<PixelEnemyProps> = ({
   const frostFilterId = `enemyFrostTint-${uid}`;
 
   const isBoss = enemy.type === 'boss';
-  const effectiveSize = size || (isBoss ? 150 : 110);
   const { spriteType } = enemy;
+  const effectiveSize = size || getEnemyBaseSize(spriteType);
   const useBossGrid = isBossSprite(spriteType);
   const vb = useBossGrid ? 64 : 48;
 
-  const spriteRects = isBossSprite(spriteType)
-    ? BOSS_ENEMY_SPRITES[spriteType]
-    : COMMON_ENEMY_SPRITES[spriteType as CommonSpriteKey];
+  const layers = isBossSprite(spriteType)
+    ? BOSS_ENEMY_LAYERS[spriteType]
+    : COMMON_ENEMY_LAYERS[spriteType as CommonSpriteKey];
+
+  const enemySpell = getEnemySpell(spriteType);
+  const isAttacking = state === 'attack' || state === 'ultimate';
 
   let animClass = '';
   if (state === 'idle') {
@@ -57,7 +62,9 @@ export const PixelEnemy: React.FC<PixelEnemyProps> = ({
       ? 'animate-[bossFloat_3s_ease-in-out_infinite]'
       : 'animate-[enemyFloat_2.4s_ease-in-out_infinite]';
   } else if (state === 'attack') {
-    animClass = 'animate-[enemyLunge_0.4s_cubic-bezier(0.16,1,0.3,1)]';
+    animClass = enemySpell
+      ? 'animate-[enemyCast_0.45s_cubic-bezier(0.16,1,0.3,1)]'
+      : 'animate-[enemyLunge_0.4s_cubic-bezier(0.16,1,0.3,1)]';
   } else if (state === 'block') {
     animClass = 'animate-[enemyBlock_0.45s_cubic-bezier(0.16,1,0.3,1)]';
   } else if (state === 'ultimate') {
@@ -74,6 +81,62 @@ export const PixelEnemy: React.FC<PixelEnemyProps> = ({
 
   const shadowCy = useBossGrid ? 59.5 : 44.5;
   const shadowCx = useBossGrid ? 32 : 24;
+
+  const weaponAnimClass = isAttacking
+    ? layers.weaponMotion === 'staff'
+      ? 'animate-[enemyStaffCast_0.46s_cubic-bezier(0.16,1,0.3,1)_forwards]'
+      : layers.weaponMotion === 'slash'
+      ? 'animate-[enemyWeaponSlash_0.44s_cubic-bezier(0.16,1,0.3,1)_forwards]'
+      : undefined
+    : undefined;
+
+  const weaponEl = layers.weapon ? (
+    <g
+      className={weaponAnimClass}
+      style={
+        layers.weaponPivot
+          ? { transformOrigin: `${layers.weaponPivot[0]}px ${layers.weaponPivot[1]}px` }
+          : undefined
+      }
+    >
+      <PixelLayer rects={layers.weapon} />
+      {isAttacking && enemySpell && layers.spellTip && (
+        <g transform={`translate(${layers.spellTip[0]}, ${layers.spellTip[1]})`}>
+          <circle
+            cx="0"
+            cy="0"
+            r={useBossGrid ? 6.5 : 4.8}
+            fill={enemySpell.primary}
+            opacity="0.7"
+          />
+          <circle
+            cx="0"
+            cy="0"
+            r={useBossGrid ? 4 : 3}
+            fill={enemySpell.secondary}
+          />
+          <rect x="-1.5" y="-1.5" width="3" height="3" fill={enemySpell.core} />
+        </g>
+      )}
+    </g>
+  ) : null;
+
+  const offhandEl = layers.offhandWeapon ? (
+    <g
+      className={
+        isAttacking
+          ? 'animate-[enemyOffhandSlash_0.42s_cubic-bezier(0.16,1,0.3,1)_forwards]'
+          : undefined
+      }
+      style={
+        layers.offhandPivot
+          ? { transformOrigin: `${layers.offhandPivot[0]}px ${layers.offhandPivot[1]}px` }
+          : undefined
+      }
+    >
+      <PixelLayer rects={layers.offhandWeapon} />
+    </g>
+  ) : null;
 
   return (
     <div
@@ -145,7 +208,7 @@ export const PixelEnemy: React.FC<PixelEnemyProps> = ({
           </g>
         )}
 
-        {/* Crisp Dan-the-Man Pixel Art Sprite (charred on burn, glacial cyan on freeze) */}
+        {/* Crisp Dan-the-Man Pixel Art Sprite + Animated Weapon/Staff Layer */}
         <g
           filter={
             state === 'burned'
@@ -155,8 +218,94 @@ export const PixelEnemy: React.FC<PixelEnemyProps> = ({
               : undefined
           }
         >
-          <PixelLayer rects={spriteRects} />
+          {offhandEl}
+          {layers.weaponBehindBody && weaponEl}
+          <PixelLayer rects={layers.body} />
+          {!layers.weaponBehindBody && weaponEl}
         </g>
+
+        {/* Melee Weapon Crescent Slash Trail (Swords / Daggers / Clubs / Runeblade / Hammer) */}
+        {isAttacking && layers.weaponMotion === 'slash' && (
+          <g>
+            <path
+              d={`M${Math.round(vb * 0.34)},${Math.round(vb * 0.1)} C${Math.round(vb * 0.04)},${Math.round(vb * 0.24)} ${Math.round(vb * 0.02)},${Math.round(vb * 0.56)} ${Math.round(vb * 0.24)},${Math.round(vb * 0.8)}`}
+              fill="none"
+              stroke={enemySpell ? enemySpell.secondary : '#f8fafc'}
+              strokeWidth={useBossGrid ? 4 : 3}
+              strokeLinecap="square"
+              className="animate-[slashArc_0.42s_ease-out_forwards]"
+            />
+            <path
+              d={`M${Math.round(vb * 0.38)},${Math.round(vb * 0.14)} C${Math.round(vb * 0.1)},${Math.round(vb * 0.28)} ${Math.round(vb * 0.08)},${Math.round(vb * 0.54)} ${Math.round(vb * 0.26)},${Math.round(vb * 0.74)}`}
+              fill="none"
+              stroke={enemySpell ? enemySpell.core : '#fbbf24'}
+              strokeWidth={useBossGrid ? 2 : 1.5}
+              strokeLinecap="square"
+              className="animate-[slashArc_0.42s_ease-out_forwards]"
+            />
+          </g>
+        )}
+
+        {/* Unarmed Beast Claw / Bite Slash Trails (Wolf, Harpy, Mimic) */}
+        {isAttacking && layers.weaponMotion === 'claw' && (
+          <g
+            className="animate-[clawSlashSwipe_0.4s_ease-out_forwards]"
+            style={{ transformOrigin: `${Math.round(vb * 0.18)}px ${Math.round(vb * 0.45)}px` }}
+          >
+            {[0, 5, 10].map((dy) => (
+              <line
+                key={dy}
+                x1={Math.round(vb * 0.28)}
+                y1={Math.round(vb * 0.3) + dy}
+                x2={Math.round(vb * 0.02)}
+                y2={Math.round(vb * 0.5) + dy}
+                stroke="#ffffff"
+                strokeWidth="2"
+                strokeLinecap="square"
+              />
+            ))}
+            {[0, 5, 10].map((dy) => (
+              <line
+                key={`glow-${dy}`}
+                x1={Math.round(vb * 0.26)}
+                y1={Math.round(vb * 0.3) + dy}
+                x2={Math.round(vb * 0.04)}
+                y2={Math.round(vb * 0.48) + dy}
+                stroke="#f43f5e"
+                strokeWidth="1"
+                strokeLinecap="square"
+              />
+            ))}
+          </g>
+        )}
+
+        {/* Magic Caster Runic Charge Sigil when casting a spell */}
+        {state === 'attack' && enemySpell && (
+          <g
+            transform={`translate(${
+              layers.spellTip ? layers.spellTip[0] : useBossGrid ? 11 : 8
+            }, ${layers.spellTip ? layers.spellTip[1] : useBossGrid ? 30 : 22})`}
+          >
+            <g className="animate-[spellChargePop_0.44s_ease-out_forwards]">
+              <circle
+                cx="0"
+                cy="0"
+                r={useBossGrid ? 9 : 7}
+                fill="none"
+                stroke={enemySpell.secondary}
+                strokeWidth="1.4"
+                strokeDasharray="3,2"
+              />
+              <polygon
+                points="0,-6 5,0 0,6 -5,0"
+                fill={enemySpell.primary}
+                stroke="#0d0a18"
+                strokeWidth="1"
+              />
+              <rect x="-2" y="-2" width="4" height="4" fill={enemySpell.core} />
+            </g>
+          </g>
+        )}
 
         {/* Burned Death Overlay: Engulfing Pixel Flames & Rising Ash Embers */}
         {state === 'burned' && (

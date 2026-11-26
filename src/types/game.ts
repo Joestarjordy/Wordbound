@@ -1,6 +1,7 @@
 export type CharacterGender = 'male' | 'female';
 export type CharacterClass = 'knight';
 export type DifficultyLevel = 'easy' | 'medium' | 'hard';
+export type GameMode = 'campaign' | 'endless';
 export type KnightAnimState = 'walk' | 'idle' | 'attack' | 'ultimate' | 'hurt' | 'victory' | 'defeat';
 export type EnemyAnimState =
   | 'idle'
@@ -43,6 +44,8 @@ export interface PlayerProfile {
   unlockedDifficulties: DifficultyLevel[];
   currentDifficulty: DifficultyLevel;
   stageProgress: Record<DifficultyLevel, { currentStage: number; maxStageReached: number }>;
+  campaignCompletedStages: Record<DifficultyLevel, number[]>;
+  endlessBestWave: Record<DifficultyLevel, number>;
   codex: Record<string, CodexEntry>;
   stats: PlayerStats;
   soundSettings: {
@@ -108,8 +111,10 @@ export interface Enemy {
 export interface Stage {
   id: number;
   name: string;
+  chapter?: string;
   biome: 'forest' | 'ruins' | 'volcano' | 'crypt' | 'citadel';
   description: string;
+  storyBeat?: string;
   encounters: Enemy[];
   bgColors: {
     skyTop: string;

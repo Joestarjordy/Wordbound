@@ -518,6 +518,73 @@ class SoundEngine {
     osc.stop(ctx.currentTime + 0.35);
   }
 
+  public playEnemySpell(
+    school: 'fire' | 'void' | 'runic' | 'necrotic' | 'toxic' | 'nature' | 'solar'
+  ) {
+    if (this.sfxMuted) return;
+    const ctx = this.initCtx();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    if (school === 'fire' || school === 'solar') {
+      // Blazing whoosh + rising ember tone
+      const bufferSize = Math.floor(ctx.sampleRate * 0.24);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.1));
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(school === 'solar' ? 1900 : 1200, now);
+      filter.frequency.exponentialRampToValueAtTime(420, now + 0.24);
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.32, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain || ctx.destination);
+      noise.start(now);
+      return;
+    }
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    if (school === 'runic') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(260, now + 0.2);
+    } else if (school === 'necrotic') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(520, now);
+      osc.frequency.exponentialRampToValueAtTime(190, now + 0.26);
+    } else if (school === 'toxic' || school === 'nature') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(280, now);
+      osc.frequency.exponentialRampToValueAtTime(620, now + 0.12);
+      osc.frequency.exponentialRampToValueAtTime(240, now + 0.24);
+    } else {
+      // void / arcane
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(660, now);
+      osc.frequency.exponentialRampToValueAtTime(220, now + 0.24);
+    }
+
+    gain.gain.setValueAtTime(0.24, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain || ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.26);
+  }
+
   // --- Dynamic 8-Bit Multi-Voice Chiptune Looping BGM ---
 
   public startBgm(mode: 'explore' | 'combat' | 'boss' = 'explore', isLowHp = false) {

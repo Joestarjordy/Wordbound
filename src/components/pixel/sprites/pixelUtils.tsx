@@ -7,6 +7,19 @@ export interface CompiledRect {
   color: string;
 }
 
+export type EnemyWeaponMotion = 'slash' | 'staff' | 'claw' | 'innate';
+
+export interface AnimatedSpriteLayers {
+  body: CompiledRect[];
+  weapon?: CompiledRect[];
+  weaponPivot?: readonly [number, number];
+  offhandWeapon?: CompiledRect[];
+  offhandPivot?: readonly [number, number];
+  weaponMotion: EnemyWeaponMotion;
+  weaponBehindBody?: boolean;
+  spellTip?: readonly [number, number];
+}
+
 export interface CompileOptions {
   /** Hex color for 1px exterior silhouette outline around opaque cells */
   outlineColor?: string;

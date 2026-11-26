@@ -1,6 +1,20 @@
-import { CompiledRect, PixelGrid } from './pixelUtils';
+import { AnimatedSpriteLayers, CompiledRect, PixelGrid } from './pixelUtils';
 
 const OUTLINE = '#0d0a18';
+
+function flattenLayers(layers: AnimatedSpriteLayers): CompiledRect[] {
+  const parts: CompiledRect[] = [];
+  if (layers.weaponBehindBody) {
+    if (layers.offhandWeapon) parts.push(...layers.offhandWeapon);
+    if (layers.weapon) parts.push(...layers.weapon);
+    parts.push(...layers.body);
+  } else {
+    if (layers.offhandWeapon) parts.push(...layers.offhandWeapon);
+    parts.push(...layers.body);
+    if (layers.weapon) parts.push(...layers.weapon);
+  }
+  return parts;
+}
 
 export type BossSpriteKey =
   | 'boss_treant'
@@ -13,7 +27,7 @@ export type BossSpriteKey =
   | 'boss_phoenix'
   | 'boss_overlord';
 
-function buildTreant(): CompiledRect[] {
+function buildTreant(): AnimatedSpriteLayers {
   const g = new PixelGrid(64, 64);
   // Swept Back Bough & Hanging Forest Moss Vines
   g.line(41, 28, 53, 24, '#5c2b09', 4.6);
@@ -86,11 +100,16 @@ function buildTreant(): CompiledRect[] {
   g.poly([[7, 40], [7, 46], [10, 44]], '#713f12');
   g.line(12, 32, 12, 42, '#166534', 1.6);
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weaponMotion: 'innate',
+    spellTip: [8, 42],
+  };
 }
 
-function buildOgre(): CompiledRect[] {
+function buildOgre(): AnimatedSpriteLayers {
   const g = new PixelGrid(64, 64);
+  const w = new PixelGrid(64, 64);
   // Muscular Back Right Arm with Spiked Iron Gauntlet
   g.line(42, 26, 51, 32, '#7f1d1d', 5);
   g.line(51, 32, 53, 40, '#7f1d1d', 4.4);
@@ -136,26 +155,32 @@ function buildOgre(): CompiledRect[] {
   g.poly([[24, 23], [26, 23], [25, 18]], '#fef9c3');
   g.poly([[34, 23], [36, 23], [35, 17]], '#fef9c3');
 
-  // Spiked Iron Shoulder Pauldron + Enormous Left Arm swinging Morning-Star Club
+  // Spiked Iron Shoulder Pauldron + Enormous Left Arm swinging Morning-Star Club (weapon layer)
   g.oval(21, 24, 5.2, 4.5, '#475569', '#94a3b8', '#1e293b');
   g.poly([[19, 20], [17, 15], [22, 19]], '#cbd5e1');
   g.line(20, 26, 11, 35, '#b91c1c', 5);
-  g.oval(10, 36, 3.8, 3.8, '#dc2626');
-  g.line(10, 38, 6, 12, '#5c2b09', 3.4);
-  g.oval(6, 13, 5.8, 6.8, '#475569', '#94a3b8', '#1e293b');
+  w.oval(10, 36, 3.8, 3.8, '#dc2626');
+  w.line(10, 38, 6, 12, '#5c2b09', 3.4);
+  w.oval(6, 13, 5.8, 6.8, '#475569', '#94a3b8', '#1e293b');
   for (const [sx, sy] of [[0, 11], [0, 16], [12, 10], [12, 16], [6, 5]]) {
-    g.rect(sx, sy, 2, 2, '#f8fafc');
+    w.rect(sx, sy, 2, 2, '#f8fafc');
   }
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weapon: w.compile(OUTLINE),
+    weaponPivot: [10, 36],
+    weaponMotion: 'slash',
+  };
 }
 
-function buildLich(): CompiledRect[] {
+function buildLich(): AnimatedSpriteLayers {
   const g = new PixelGrid(64, 64);
-  // Gnarled Iron-and-Bone Phylactery Staff on Right
-  g.line(52, 14, 52, 58, '#334155', 2.4);
-  g.poly([[48, 14], [52, 17], [56, 14], [54, 8], [50, 8]], '#a8a29e');
-  g.oval(52, 11, 2.8, 3.2, '#14b8a6', '#ccfbf1', '#0f766e');
+  const w = new PixelGrid(64, 64);
+  // Gnarled Iron-and-Bone Phylactery Staff on Right (staff layer)
+  w.line(52, 14, 52, 58, '#334155', 2.4);
+  w.poly([[48, 14], [52, 17], [56, 14], [54, 8], [50, 8]], '#a8a29e');
+  w.oval(52, 11, 2.8, 3.2, '#14b8a6', '#ccfbf1', '#0f766e');
 
   // Jagged Tattered Necromancer Cloak & Rotted Hem Strips
   g.poly([
@@ -208,10 +233,17 @@ function buildLich(): CompiledRect[] {
   g.set(2, 16, '#ccfbf1', false);
   g.set(11, 16, '#2dd4bf', false);
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weapon: w.compile(OUTLINE),
+    weaponPivot: [52, 31],
+    weaponMotion: 'staff',
+    weaponBehindBody: true,
+    spellTip: [52, 11],
+  };
 }
 
-function buildDragon(): CompiledRect[] {
+function buildDragon(): AnimatedSpriteLayers {
   const g = new PixelGrid(64, 64);
   // Sweeping Spiked Dragon Tail whipping up right
   g.poly([[39, 43], [50, 44], [58, 34], [60, 23], [55, 34], [41, 47]], '#9a3412');
@@ -272,16 +304,21 @@ function buildDragon(): CompiledRect[] {
   g.poly([[9, 20], [2, 18], [1, 23], [9, 23]], '#f97316', false);
   g.poly([[7, 20], [3, 20], [3, 22], [7, 22]], '#fef08a', false);
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weaponMotion: 'innate',
+    spellTip: [5, 21],
+  };
 }
 
-function buildTitan(): CompiledRect[] {
+function buildTitan(): AnimatedSpriteLayers {
   const g = new PixelGrid(64, 64);
-  // Colossal Chiseled Stone & Rune War-Hammer gripped by Right Arm
-  g.line(53, 17, 53, 57, '#334155', 3);
-  g.poly([[45, 11], [61, 11], [59, 22], [47, 22]], '#475569');
-  g.rect(48, 13, 10, 6, '#334155');
-  g.poly([[53, 13], [56, 16], [53, 19], [50, 16]], '#38bdf8');
+  const w = new PixelGrid(64, 64);
+  // Colossal Chiseled Stone & Rune War-Hammer gripped by Right Arm (weapon layer)
+  w.line(53, 17, 53, 57, '#334155', 3);
+  w.poly([[45, 11], [61, 11], [59, 22], [47, 22]], '#475569');
+  w.rect(48, 13, 10, 6, '#334155');
+  w.poly([[53, 13], [56, 16], [53, 19], [50, 16]], '#38bdf8');
   g.line(43, 30, 52, 34, '#475569', 5.5);
   g.oval(53, 34, 4.2, 4.2, '#64748b');
 
@@ -335,11 +372,19 @@ function buildTitan(): CompiledRect[] {
   g.line(5, 40, 13, 40, OUTLINE, 1);
   g.line(5, 43, 13, 43, OUTLINE, 1);
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weapon: w.compile(OUTLINE),
+    weaponPivot: [53, 34],
+    weaponMotion: 'slash',
+    weaponBehindBody: true,
+    spellTip: [53, 14],
+  };
 }
 
-function buildDeathKnight(): CompiledRect[] {
+function buildDeathKnight(): AnimatedSpriteLayers {
   const g = new PixelGrid(64, 64);
+  const w = new PixelGrid(64, 64);
   // Sweeping Tattered Violet War-Cape
   g.poly([[36, 20], [54, 27], [59, 49], [52, 56], [46, 49], [41, 57], [34, 48]], '#1e1b4b');
   g.poly([[37, 22], [51, 29], [54, 47], [44, 52], [36, 46]], '#312e81');
@@ -378,22 +423,28 @@ function buildDeathKnight(): CompiledRect[] {
   g.eye(25, 14, '#e9d5ff', '#ffffff');
   g.eye(32, 14, '#e9d5ff', '#ffffff');
 
-  // Gauntleted Arms gripping Enormous Notched Violet-Runeblade Greatsword
+  // Gauntleted Arms gripping Enormous Notched Violet-Runeblade Greatsword (weapon layer)
   g.line(21, 25, 15, 34, '#312e81', 3.8);
   g.line(39, 25, 26, 36, '#1e1b4b', 3.6);
-  g.oval(14, 35, 2.8, 2.8, '#475569');
-  g.oval(24, 36, 2.5, 2.5, '#64748b');
-  g.line(17, 36, 4, 7, '#a855f7', 5);
-  g.line(16, 35, 5, 8, '#e9d5ff', 2);
-  g.set(10, 18, OUTLINE);
-  g.set(7, 12, OUTLINE);
-  g.line(12, 37, 21, 32, '#c084fc', 2.4);
-  g.line(17, 36, 22, 43, '#4c1d95', 2.2);
+  w.oval(14, 35, 2.8, 2.8, '#475569');
+  w.oval(24, 36, 2.5, 2.5, '#64748b');
+  w.line(17, 36, 4, 7, '#a855f7', 5);
+  w.line(16, 35, 5, 8, '#e9d5ff', 2);
+  w.set(10, 18, OUTLINE);
+  w.set(7, 12, OUTLINE);
+  w.line(12, 37, 21, 32, '#c084fc', 2.4);
+  w.line(17, 36, 22, 43, '#4c1d95', 2.2);
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weapon: w.compile(OUTLINE),
+    weaponPivot: [15, 35],
+    weaponMotion: 'slash',
+    spellTip: [5, 9],
+  };
 }
 
-function buildWyrm(): CompiledRect[] {
+function buildWyrm(): AnimatedSpriteLayers {
   const g = new PixelGrid(64, 64);
   // Orbiting Cosmic Void Shard Crystals
   g.poly([[8, 9], [10, 12], [8, 15], [6, 12]], '#a5f3fc', false);
@@ -442,10 +493,14 @@ function buildWyrm(): CompiledRect[] {
   g.set(12, 24, '#ffffff');
   g.poly([[7, 20], [2, 19], [3, 22], [7, 22]], '#67e8f9', false);
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weaponMotion: 'innate',
+    spellTip: [5, 21],
+  };
 }
 
-function buildPhoenix(): CompiledRect[] {
+function buildPhoenix(): AnimatedSpriteLayers {
   const g = new PixelGrid(64, 64);
   // Cascading Swirling Crimson & Gold Flame-Tail Plumes
   g.poly([[26, 40], [38, 40], [45, 57], [38, 51], [32, 61], [27, 51], [20, 58]], '#dc2626');
@@ -487,11 +542,16 @@ function buildPhoenix(): CompiledRect[] {
     g.poly([[tx, 46], [tx + 3, 49], [tx + 1, 50]], '#facc15');
   }
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weaponMotion: 'innate',
+    spellTip: [18, 18],
+  };
 }
 
-function buildOverlord(): CompiledRect[] {
+function buildOverlord(): AnimatedSpriteLayers {
   const g = new PixelGrid(64, 64);
+  const w = new PixelGrid(64, 64);
   // Crimson-Rose Cosmic Archon Halo Ring behind Shoulders (distinct from the Gold Crown!)
   g.oval(31, 20, 16, 16, '#f43f5e', undefined, undefined, false);
   g.oval(31, 20, 14, 14, OUTLINE, undefined, undefined, false);
@@ -499,11 +559,11 @@ function buildOverlord(): CompiledRect[] {
     g.rect(rx - 1, ry - 1, 3, 3, '#fda4af', false);
   }
 
-  // Towering Twin-Crescent Astral Halberd wielded on Right
-  g.line(54, 14, 54, 60, '#475569', 2.4);
-  g.poly([[54, 4], [58, 10], [54, 18], [50, 10]], '#fbbf24');
-  g.poly([[50, 10], [45, 14], [52, 16]], '#f43f5e');
-  g.poly([[58, 10], [62, 14], [56, 16]], '#f43f5e');
+  // Towering Twin-Crescent Astral Halberd/Staff wielded on Right (staff layer)
+  w.line(54, 14, 54, 60, '#475569', 2.4);
+  w.poly([[54, 4], [58, 10], [54, 18], [50, 10]], '#fbbf24');
+  w.poly([[50, 10], [45, 14], [52, 16]], '#f43f5e');
+  w.poly([[58, 10], [62, 14], [56, 16]], '#f43f5e');
 
   // Sweeping Jagged Imperial Cape & Arcane Levitation Aura below Greaves
   g.poly([[18, 25], [45, 25], [51, 54], [41, 58], [31, 52], [21, 58], [12, 53]], '#500724');
@@ -560,10 +620,17 @@ function buildOverlord(): CompiledRect[] {
   g.set(10, 27, '#ec4899');
   g.set(8, 20, '#f43f5e', false);
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weapon: w.compile(OUTLINE),
+    weaponPivot: [54, 31],
+    weaponMotion: 'staff',
+    weaponBehindBody: true,
+    spellTip: [54, 8],
+  };
 }
 
-export const BOSS_ENEMY_SPRITES: Record<BossSpriteKey, CompiledRect[]> = {
+export const BOSS_ENEMY_LAYERS: Record<BossSpriteKey, AnimatedSpriteLayers> = {
   boss_treant: buildTreant(),
   boss_ogre: buildOgre(),
   boss_lich: buildLich(),
@@ -573,4 +640,16 @@ export const BOSS_ENEMY_SPRITES: Record<BossSpriteKey, CompiledRect[]> = {
   boss_wyrm: buildWyrm(),
   boss_phoenix: buildPhoenix(),
   boss_overlord: buildOverlord(),
+};
+
+export const BOSS_ENEMY_SPRITES: Record<BossSpriteKey, CompiledRect[]> = {
+  boss_treant: flattenLayers(BOSS_ENEMY_LAYERS.boss_treant),
+  boss_ogre: flattenLayers(BOSS_ENEMY_LAYERS.boss_ogre),
+  boss_lich: flattenLayers(BOSS_ENEMY_LAYERS.boss_lich),
+  boss_dragon: flattenLayers(BOSS_ENEMY_LAYERS.boss_dragon),
+  boss_titan: flattenLayers(BOSS_ENEMY_LAYERS.boss_titan),
+  boss_deathknight: flattenLayers(BOSS_ENEMY_LAYERS.boss_deathknight),
+  boss_wyrm: flattenLayers(BOSS_ENEMY_LAYERS.boss_wyrm),
+  boss_phoenix: flattenLayers(BOSS_ENEMY_LAYERS.boss_phoenix),
+  boss_overlord: flattenLayers(BOSS_ENEMY_LAYERS.boss_overlord),
 };

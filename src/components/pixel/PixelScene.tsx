@@ -1,8 +1,23 @@
-import React from 'react';
-import { CharacterGender, Enemy, EnemyAnimState, KnightAnimState, Stage } from '../../types/game';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  CharacterGender,
+  Enemy,
+  EnemyAnimState,
+  GameMode,
+  KnightAnimState,
+  Stage,
+} from '../../types/game';
 import { KNIGHT_SKILLS } from '../../data/knightSkills';
+import { getEnemySpell } from '../../data/enemySpells';
+import {
+  getEnemyDisplaySize,
+  KNIGHT_BASE_COMBAT_SIZE,
+  KNIGHT_BASE_EXPLORE_SIZE,
+} from '../../data/enemyScale';
+import { CAMPAIGN_TOTAL_STAGES } from '../../data/stages';
 import { PixelKnight } from './PixelKnight';
 import { PixelEnemy } from './PixelEnemy';
+import { EnemySpellFx } from './EnemySpellFx';
 import { RealmBackdrop } from './RealmBackdrop';
 
 const SPARKS = [
@@ -39,9 +54,12 @@ const VICTORY_STARS = [
 ] as const;
 
 interface PixelSceneProps {
+  gameMode: GameMode;
   stage: Stage;
   currentEncounterIndex: number;
   totalEncounters: number;
+  endlessWave?: number;
+  endlessBestWave?: number;
   inCombat: boolean;
   knightGender: CharacterGender;
   knightState: KnightAnimState;
@@ -57,9 +75,12 @@ interface PixelSceneProps {
 }
 
 export const PixelScene: React.FC<PixelSceneProps> = ({
+  gameMode,
   stage,
   currentEncounterIndex,
   totalEncounters,
+  endlessWave = 1,
+  endlessBestWave = 0,
   inCombat,
   knightGender,
   knightState,
@@ -73,7 +94,11 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
   enemyHp,
   enemyMaxHp,
 }) => {
-  const isBossEncounter = currentEncounterIndex === totalEncounters - 1;
+  const isEndless = gameMode === 'endless';
+  const isBossEncounter = isEndless
+    ? currentEnemy?.type === 'boss'
+    : currentEncounterIndex === totalEncounters - 1;
+  const enemySpell = currentEnemy ? getEnemySpell(currentEnemy.spriteType) : null;
   const isFireKnight = knightGender === 'male';
   const knightSkill = KNIGHT_SKILLS[knightGender];
   const hasShake =
@@ -84,8 +109,40 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
     knightState === 'ultimate' ||
     enemyState === 'ultimate';
 
-  const knightSize = inCombat ? 118 : 148;
-  const enemySize = isBossEncounter ? (inCombat ? 154 : 188) : inCombat ? 112 : 138;
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const [sceneScale, setSceneScale] = useState(1);
+
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+
+    const updateScale = () => {
+      const h = el.clientHeight;
+      const w = el.clientWidth;
+      if (h <= 0 || w <= 0) return;
+      // Preserve exact Knight-to-Enemy proportions while guaranteeing colossal bosses
+      // never clip on short mobile screens and look imposing on tall desktop screens.
+      const heightScale = h / 305;
+      const widthScale = w / 420;
+      const clamped = Math.max(0.62, Math.min(1.12, Math.min(heightScale, widthScale)));
+      setSceneScale(clamped);
+    };
+
+    updateScale();
+    const ro = new ResizeObserver(updateScale);
+    ro.observe(el);
+
+    return () => {
+      ro.disconnect();
+    };
+  }, []);
+
+  const knightSize = Math.round(
+    (inCombat ? KNIGHT_BASE_COMBAT_SIZE : KNIGHT_BASE_EXPLORE_SIZE) * sceneScale
+  );
+  const enemySize = currentEnemy
+    ? getEnemyDisplaySize(currentEnemy.spriteType, inCombat, sceneScale)
+    : Math.round(108 * sceneScale);
   const effectiveKnightHp = knightHp;
   const effectiveKnightMaxHp = knightMaxHp;
   const effectiveEnemyHp = enemyHp ?? currentEnemy?.maxHp ?? 100;
@@ -96,19 +153,31 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
 
   return (
     <div
+      ref={stageRef}
       className={`relative w-full h-full flex-1 min-h-0 overflow-hidden pixel-border select-none bg-black transition-all duration-300 ${
         hasShake ? 'animate-[screenShake_0.35s_ease-out]' : ''
       }`}
     >
       <RealmBackdrop stage={stage} inCombat={inCombat} />
 
-      {/* Stage Header & Progress Meter */}
-      <div className="absolute top-2 left-3 right-3 flex items-center justify-between text-xs z-20">
-        <div className="flex items-center gap-1.5 bg-black/80 px-2.5 py-1 rounded border border-amber-400/40 backdrop-blur-xs">
-          <span className="text-amber-400 font-pixel text-[9px]">
-            STAGE {stage.id}
-            <span className="hidden sm:inline">: {stage.name.toUpperCase()}</span>
-          </span>
+      {/* Stage / Endless Wave Header & Progress Meter */}
+      <div className="absolute top-2 left-3 right-3 flex items-center justify-between text-xs z-20 gap-2">
+        <div
+          className={`flex items-center gap-1.5 bg-black/80 px-2.5 py-1 rounded border backdrop-blur-xs ${
+            isEndless ? 'border-cyan-400/50' : 'border-amber-400/40'
+          }`}
+        >
+          {isEndless ? (
+            <span className="text-cyan-300 font-pixel text-[9px]">
+              ∞ WAVE {endlessWave}
+              <span className="hidden sm:inline"> · {stage.name.toUpperCase()}</span>
+            </span>
+          ) : (
+            <span className="text-amber-400 font-pixel text-[9px]">
+              STAGE {stage.id}/{CAMPAIGN_TOTAL_STAGES}
+              <span className="hidden sm:inline">: {stage.name.toUpperCase()}</span>
+            </span>
+          )}
           {isBossEncounter && inCombat && (
             <span className="bg-red-600 text-white font-pixel text-[8px] px-1.5 py-0.2 rounded animate-pulse">
               BOSS
@@ -116,33 +185,40 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
           )}
         </div>
 
-        {/* Encounter Milestones Progress */}
-        <div className="flex items-center gap-1 bg-black/80 px-2.5 py-1 rounded border border-slate-700 backdrop-blur-xs">
-          <span className="text-gray-400 text-[9px] mr-1 hidden sm:inline">PATH:</span>
-          {Array.from({ length: totalEncounters }).map((_, idx) => {
-            const isCompleted = idx < currentEncounterIndex;
-            const isCurrent = idx === currentEncounterIndex;
-            const isBoss = idx === totalEncounters - 1;
+        {/* Encounter Milestones (Campaign) or Survival Record (Endless) */}
+        {isEndless ? (
+          <div className="flex items-center gap-2 bg-black/80 px-2.5 py-1 rounded border border-cyan-500/40 backdrop-blur-xs font-pixel text-[8px] sm:text-[9px]">
+            <span className="text-amber-300">BEST: W{endlessBestWave}</span>
+            <span className="text-cyan-300 hidden sm:inline">SURVIVAL</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 bg-black/80 px-2.5 py-1 rounded border border-slate-700 backdrop-blur-xs">
+            <span className="text-gray-400 text-[9px] mr-1 hidden sm:inline">PATH:</span>
+            {Array.from({ length: totalEncounters }).map((_, idx) => {
+              const isCompleted = idx < currentEncounterIndex;
+              const isCurrent = idx === currentEncounterIndex;
+              const isBoss = idx === totalEncounters - 1;
 
-            return (
-              <div
-                key={idx}
-                className={`flex items-center justify-center w-4 h-4 rounded-xs text-[8px] font-pixel transition-all ${
-                  isCompleted
-                    ? 'bg-emerald-600 text-white border border-emerald-400'
-                    : isCurrent
-                    ? 'bg-amber-500 text-black border border-white scale-110 shadow-[0_0_8px_rgba(245,158,11,0.8)]'
-                    : isBoss
-                    ? 'bg-red-950 text-red-400 border border-red-800'
-                    : 'bg-slate-800 text-gray-500 border border-slate-700'
-                }`}
-                title={isBoss ? 'Stage Boss' : `Encounter ${idx + 1}`}
-              >
-                {isBoss ? '👑' : idx + 1}
-              </div>
-            );
-          })}
-        </div>
+              return (
+                <div
+                  key={idx}
+                  className={`flex items-center justify-center w-4 h-4 rounded-xs text-[8px] font-pixel transition-all ${
+                    isCompleted
+                      ? 'bg-emerald-600 text-white border border-emerald-400'
+                      : isCurrent
+                      ? 'bg-amber-500 text-black border border-white scale-110 shadow-[0_0_8px_rgba(245,158,11,0.8)]'
+                      : isBoss
+                      ? 'bg-red-950 text-red-400 border border-red-800'
+                      : 'bg-slate-800 text-gray-500 border border-slate-700'
+                  }`}
+                  title={isBoss ? 'Stage Boss' : `Encounter ${idx + 1}`}
+                >
+                  {isBoss ? '👑' : idx + 1}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Auto-runner Walking Progress Bar */}
@@ -221,12 +297,14 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
             </span>
           </div>
 
-          <PixelKnight
-            gender={knightGender}
-            state={knightState}
-            size={knightSize}
-            className="transition-transform"
-          />
+          <div className="-mb-1.5">
+            <PixelKnight
+              gender={knightGender}
+              state={knightState}
+              size={knightSize}
+              className="transition-transform"
+            />
+          </div>
 
           {/* Footstep Pixel Dust on Walk */}
           {knightState === 'walk' && (
@@ -295,7 +373,7 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
             </div>
           )}
 
-          {/* Knight Hurt Impact FX */}
+          {/* Knight Hurt Impact FX (tinted to match caster's spell school when hit by magic) */}
           {knightState === 'hurt' && (
             <div
               key="knight-hurt-fx"
@@ -304,6 +382,12 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
               aria-hidden="true"
             >
               <div className="relative w-0 h-0">
+                {enemySpell && (
+                  <div
+                    className="fx-motion absolute -left-[32px] -top-[32px] w-[64px] h-[64px] border-2 animate-[pixelRingPop_0.42s_ease-out_forwards]"
+                    style={{ borderColor: enemySpell.secondary }}
+                  />
+                )}
                 <svg
                   width="82"
                   height="82"
@@ -313,20 +397,23 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
                 >
                   <polygon
                     points="0,-36 8,-12 34,-14 14,4 22,30 0,14 -22,30 -14,4 -34,-14 -8,-12"
-                    fill="#f43f5e"
+                    fill={enemySpell ? enemySpell.primary : '#f43f5e'}
                     stroke="#0d0a18"
                     strokeWidth="4"
                   />
                   <polygon
                     points="0,-24 5,-8 22,-9 9,3 15,20 0,9 -15,20 -9,3 -22,-9 -5,-8"
-                    fill="#ffe4e6"
+                    fill={enemySpell ? enemySpell.core : '#ffe4e6'}
                   />
                 </svg>
                 {[38, -38].map((rot) => (
                   <div
                     key={rot}
-                    className="fx-motion absolute -left-[36px] -top-[3px] w-[72px] h-[6px] bg-rose-200 border border-[#0d0a18] animate-[slashCross_0.38s_ease-out_forwards]"
-                    style={{ ['--rot' as string]: `${rot}deg` }}
+                    className="fx-motion absolute -left-[36px] -top-[3px] w-[72px] h-[6px] border border-[#0d0a18] animate-[slashCross_0.38s_ease-out_forwards]"
+                    style={{
+                      backgroundColor: enemySpell ? enemySpell.secondary : '#fecdd3',
+                      ['--rot' as string]: `${rot}deg`,
+                    }}
                   />
                 ))}
                 {KNIGHT_HURT_SPARKS.map((s, i) => (
@@ -336,7 +423,11 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
                     style={{
                       width: s.size,
                       height: s.size,
-                      backgroundColor: s.color,
+                      backgroundColor: enemySpell
+                        ? i % 2 === 0
+                          ? enemySpell.secondary
+                          : enemySpell.core
+                        : s.color,
                       ['--sx' as string]: `${s.x}px`,
                       ['--sy' as string]: `${s.y}px`,
                     }}
@@ -445,17 +536,20 @@ export const PixelScene: React.FC<PixelSceneProps> = ({
 
               <PixelEnemy enemy={currentEnemy} state={enemyState} size={enemySize} />
 
-              {/* Enemy Attack Dash Streak */}
-              {enemyState === 'attack' && (
-                <div className="absolute inset-0 pointer-events-none z-20" aria-hidden="true">
-                  <div
-                    className="fx-motion absolute -left-8 bottom-8 w-16 h-2 bg-rose-400 border border-[#0d0a18] animate-[enemyDashStreak_0.4s_ease-out_forwards]"
-                  />
-                  <div
-                    className="fx-motion absolute -left-6 bottom-5 w-12 h-1.5 bg-amber-200 border border-[#0d0a18] animate-[enemyDashStreak_0.44s_ease-out_forwards]"
-                  />
-                </div>
-              )}
+              {/* Enemy Attack FX: Magic Spell Projectile for Casters, Melee Dash Streaks for Physical */}
+              {enemyState === 'attack' &&
+                (enemySpell ? (
+                  <EnemySpellFx spell={enemySpell} enemySize={enemySize} />
+                ) : (
+                  <div className="absolute inset-0 pointer-events-none z-20" aria-hidden="true">
+                    <div
+                      className="fx-motion absolute -left-8 bottom-8 w-16 h-2 bg-rose-400 border border-[#0d0a18] animate-[enemyDashStreak_0.4s_ease-out_forwards]"
+                    />
+                    <div
+                      className="fx-motion absolute -left-6 bottom-5 w-12 h-1.5 bg-amber-200 border border-[#0d0a18] animate-[enemyDashStreak_0.44s_ease-out_forwards]"
+                    />
+                  </div>
+                ))}
 
               {/* Knight Ultimate Finisher FX on the Enemy (Fire for Male, Frost for Female) */}
               {knightState === 'ultimate' && (

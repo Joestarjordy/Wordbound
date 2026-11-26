@@ -1,6 +1,7 @@
 import React from 'react';
-import { PlayerProfile, Stage } from '../../types/game';
+import { Enemy, GameMode, PlayerProfile, Stage } from '../../types/game';
 import { KNIGHT_SKILLS } from '../../data/knightSkills';
+import { CAMPAIGN_TOTAL_STAGES } from '../../data/stages';
 import { PixelKnight } from '../pixel/PixelKnight';
 import { PixelEnemy } from '../pixel/PixelEnemy';
 import { Map, BookOpen, Flame, Compass, Eye, Shield } from 'lucide-react';
@@ -8,9 +9,14 @@ import { soundEngine } from '../../utils/sound';
 
 interface ExplorationConsoleProps {
   profile: PlayerProfile;
+  gameMode: GameMode;
   stage: Stage;
+  upcomingEnemy: Enemy | null;
   currentEncounterIndex: number;
   totalEncounters: number;
+  endlessWave: number;
+  endlessBestWave: number;
+  knightHp: number;
   explorationProgress: number;
   onOpenCodex: () => void;
   onOpenStageSelect: () => void;
@@ -19,19 +25,27 @@ interface ExplorationConsoleProps {
 
 export const ExplorationConsole: React.FC<ExplorationConsoleProps> = ({
   profile,
+  gameMode,
   stage,
+  upcomingEnemy,
   currentEncounterIndex,
   totalEncounters,
+  endlessWave,
+  endlessBestWave,
+  knightHp,
   explorationProgress,
   onOpenCodex,
   onOpenStageSelect,
   onOpenProfile,
 }) => {
-  const upcomingEnemy = stage.encounters[currentEncounterIndex];
-  const isBoss = currentEncounterIndex === totalEncounters - 1;
+  const isEndless = gameMode === 'endless';
+  const isBoss = isEndless
+    ? upcomingEnemy?.type === 'boss'
+    : currentEncounterIndex === totalEncounters - 1;
   const codexTotal = Object.keys(profile.codex).length;
   const knightSkill = KNIGHT_SKILLS[profile.gender];
   const isFireKnight = knightSkill.magicType === 'fire';
+  const wavesUntilBoss = 5 - (endlessWave % 5);
 
   return (
     <div className="w-full max-w-4xl mx-auto h-full flex flex-col justify-between select-none py-1 px-1 sm:px-2">
@@ -55,11 +69,24 @@ export const ExplorationConsole: React.FC<ExplorationConsoleProps> = ({
             />
           </div>
           <div className="flex justify-between items-center text-[9px] text-gray-400 mt-1">
-            <span>Encounter {currentEncounterIndex + 1} of {totalEncounters}</span>
+            <span>
+              {isEndless
+                ? `Wave ${endlessWave} · Best W${endlessBestWave}`
+                : `Stage ${stage.id}/${CAMPAIGN_TOTAL_STAGES} · Enc ${currentEncounterIndex + 1}/${totalEncounters}`}
+            </span>
             <span className="text-amber-300 font-pixel">
-              {isBoss ? '👑 BOSS AHEAD' : '⚔️ ENEMY INCOMING'}
+              {isBoss
+                ? '👑 BOSS AHEAD'
+                : isEndless
+                ? `BOSS IN ${wavesUntilBoss}W`
+                : '⚔️ ENEMY INCOMING'}
             </span>
           </div>
+          {!isEndless && stage.storyBeat && (
+            <p className="text-[9px] text-amber-200/80 font-silkscreen mt-1 truncate" title={stage.storyBeat}>
+              {stage.storyBeat}
+            </p>
+          )}
         </div>
 
         {/* Scout Intel Box */}
@@ -98,7 +125,7 @@ export const ExplorationConsole: React.FC<ExplorationConsoleProps> = ({
             <span className="text-sky-300">{profile.gender.toUpperCase()} KNIGHT</span>
             <span className="text-gray-500 hidden sm:inline">•</span>
             <span className="text-emerald-400 hidden sm:inline flex items-center gap-0.5">
-              <Shield className="w-2.5 h-2.5 inline" /> 200/200 HP
+              <Shield className="w-2.5 h-2.5 inline" /> {knightHp}/200 HP
             </span>
           </div>
         </div>

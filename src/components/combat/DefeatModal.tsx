@@ -1,9 +1,12 @@
 import React from 'react';
-import { WordEntry } from '../../types/game';
-import { RotateCcw, BookOpen, AlertOctagon } from 'lucide-react';
+import { GameMode, WordEntry } from '../../types/game';
+import { RotateCcw, BookOpen, AlertOctagon, Infinity as InfinityIcon } from 'lucide-react';
 
 interface DefeatModalProps {
   isOpen: boolean;
+  gameMode: GameMode;
+  endlessWave?: number;
+  endlessBestWave?: number;
   targetWord: WordEntry;
   onRetry: () => void;
   onOpenCodex?: () => void;
@@ -11,11 +14,17 @@ interface DefeatModalProps {
 
 export const DefeatModal: React.FC<DefeatModalProps> = ({
   isOpen,
+  gameMode,
+  endlessWave = 1,
+  endlessBestWave = 0,
   targetWord,
   onRetry,
   onOpenCodex,
 }) => {
   if (!isOpen) return null;
+
+  const isEndless = gameMode === 'endless';
+  const wavesCleared = Math.max(0, endlessWave - 1);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-[fadeIn_0.3s_ease-out]">
@@ -60,13 +69,30 @@ export const DefeatModal: React.FC<DefeatModalProps> = ({
           </div>
         </div>
 
-        {/* Penalty & Forced Retry Explanation */}
-        <div className="bg-rose-950/40 border border-rose-800/60 rounded px-3 py-2 text-xs text-rose-300 mb-5 text-left">
-          <div className="font-pixel text-[10px] text-rose-400 mb-0.5 flex items-center gap-1">
-            <span>⚠️ STAGE RESET PENALTY</span>
+        {/* Mode-specific Defeat Summary */}
+        {isEndless ? (
+          <div className="bg-sky-950/45 border border-cyan-500/50 rounded px-3 py-2.5 text-xs text-sky-100 mb-5 text-left">
+            <div className="font-pixel text-[10px] text-cyan-300 mb-1 flex items-center gap-1.5">
+              <InfinityIcon className="w-3.5 h-3.5" />
+              <span>ENDLESS SURVIVAL SUMMARY</span>
+            </div>
+            <div className="flex justify-between font-pixel text-[10px] text-gray-200 mt-1">
+              <span>WAVES CLEARED:</span>
+              <span className="text-amber-300">{wavesCleared}</span>
+            </div>
+            <div className="flex justify-between font-pixel text-[10px] text-gray-200 mt-1">
+              <span>BEST RECORD ({targetWord.difficulty.toUpperCase()}):</span>
+              <span className="text-cyan-300">WAVE {Math.max(endlessBestWave, wavesCleared)}</span>
+            </div>
           </div>
-          The stage restarts from the beginning with brand new random words for every enemy, including the boss. Clear it to move on!
-        </div>
+        ) : (
+          <div className="bg-rose-950/40 border border-rose-800/60 rounded px-3 py-2 text-xs text-rose-300 mb-5 text-left">
+            <div className="font-pixel text-[10px] text-rose-400 mb-0.5 flex items-center gap-1">
+              <span>⚠️ STAGE RESET PENALTY</span>
+            </div>
+            The stage restarts from the beginning with brand new random words for every enemy, including the boss. Clear it to move on!
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-2.5">
@@ -76,7 +102,7 @@ export const DefeatModal: React.FC<DefeatModalProps> = ({
             className="flex-1 pixel-btn bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-pixel text-xs py-3 px-4 rounded shadow-pixel cursor-pointer flex items-center justify-center gap-2 border border-rose-400 active:scale-95 transition-all"
           >
             <RotateCcw className="w-4 h-4" />
-            RETRY STAGE
+            {isEndless ? 'NEW ENDLESS RUN' : 'RETRY STAGE'}
           </button>
 
           {onOpenCodex && (

@@ -1,9 +1,11 @@
 import React from 'react';
-import { DifficultyLevel, PlayerProfile } from '../../types/game';
+import { DifficultyLevel, GameMode, PlayerProfile } from '../../types/game';
 import { KNIGHT_SKILLS } from '../../data/knightSkills';
 import { PixelKnight } from '../pixel/PixelKnight';
 import {
   BookOpen,
+  Crown,
+  Infinity as InfinityIcon,
   Map,
   Volume2,
   VolumeX,
@@ -16,6 +18,8 @@ import { soundEngine } from '../../utils/sound';
 
 interface NavbarProps {
   profile: PlayerProfile;
+  gameMode: GameMode;
+  onReturnToMenu: () => void;
   onOpenCodex: () => void;
   onOpenStageSelect: () => void;
   onOpenProfile: () => void;
@@ -29,6 +33,8 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({
   profile,
+  gameMode,
+  onReturnToMenu,
   onOpenCodex,
   onOpenStageSelect,
   onOpenProfile,
@@ -53,19 +59,41 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="w-full bg-[#141224]/95 border-b-2 border-[#3b385e] px-2.5 sm:px-4 py-1.5 flex items-center justify-between select-none z-40 backdrop-blur-md shrink-0 h-11 sm:h-12">
-      {/* Brand & Difficulty */}
+      {/* Brand, Mode & Difficulty */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-xs bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)] shrink-0">
-          <Swords className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-        </div>
-        <div className="flex items-baseline gap-1.5 whitespace-nowrap">
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playKeyClick();
+            onReturnToMenu();
+          }}
+          className="flex items-center gap-1.5 cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+          title="Return to Main Menu"
+        >
+          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-xs bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)] shrink-0">
+            <Swords className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          </div>
           <h1 className="font-pixel text-[11px] sm:text-xs text-amber-400 tracking-wider whitespace-nowrap">
             WORDBOUND
           </h1>
-          <span className={`px-1.5 py-0.2 rounded border text-[8px] font-pixel font-bold whitespace-nowrap ${badge.style}`}>
-            {badge.text}
-          </span>
-        </div>
+        </button>
+        <span
+          className={`hidden md:inline-flex items-center gap-1 px-1.5 py-0.2 rounded border text-[8px] font-pixel font-bold whitespace-nowrap ${
+            gameMode === 'campaign'
+              ? 'bg-amber-950/90 text-amber-300 border-amber-500/70'
+              : 'bg-cyan-950/90 text-cyan-300 border-cyan-500/70'
+          }`}
+        >
+          {gameMode === 'campaign' ? (
+            <Crown className="w-2.5 h-2.5" />
+          ) : (
+            <InfinityIcon className="w-2.5 h-2.5" />
+          )}
+          {gameMode === 'campaign' ? 'CAMPAIGN' : 'ENDLESS'}
+        </span>
+        <span className={`px-1.5 py-0.2 rounded border text-[8px] font-pixel font-bold whitespace-nowrap ${badge.style}`}>
+          {badge.text}
+        </span>
       </div>
 
       {/* Points & Action Controls Bar */}

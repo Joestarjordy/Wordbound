@@ -1,27 +1,37 @@
 import React from 'react';
-import { CharacterGender, Enemy, WordEntry } from '../../types/game';
+import { CharacterGender, DifficultyLevel, Enemy, GameMode, WordEntry } from '../../types/game';
 import { KNIGHT_SKILLS } from '../../data/knightSkills';
-import { Award, BookCheck, ArrowRight, Sparkles } from 'lucide-react';
+import { Award, BookCheck, ArrowRight, Crown, Sparkles } from 'lucide-react';
 
 interface VictoryBannerProps {
   isOpen: boolean;
+  gameMode: GameMode;
+  difficulty: DifficultyLevel;
   targetWord: WordEntry;
   enemy: Enemy;
   knightGender: CharacterGender;
   attemptsUsed: number;
   pointsEarned: number;
   isBoss: boolean;
+  endlessWave?: number;
+  endlessHeal?: number;
+  isCampaignFinale?: boolean;
   onContinue: () => void;
 }
 
 export const VictoryBanner: React.FC<VictoryBannerProps> = ({
   isOpen,
+  gameMode,
+  difficulty,
   targetWord,
   enemy,
   knightGender,
   attemptsUsed,
   pointsEarned,
   isBoss,
+  endlessWave = 1,
+  endlessHeal = 0,
+  isCampaignFinale = false,
   onContinue,
 }) => {
   if (!isOpen) return null;
@@ -29,6 +39,7 @@ export const VictoryBanner: React.FC<VictoryBannerProps> = ({
   const isFirstTrySkill = attemptsUsed === 1;
   const skill = KNIGHT_SKILLS[knightGender];
   const isFire = skill.magicType === 'fire';
+  const isEndless = gameMode === 'endless';
 
   // Attempt praise rank
   let praise = 'GREAT VICTORY!';
@@ -66,6 +77,18 @@ export const VictoryBanner: React.FC<VictoryBannerProps> = ({
             }`}
           >
             {isFire ? '🔥' : '❄️'} {skill.deathEffectLabel} BY {skill.magicLabel.toUpperCase()}
+          </div>
+        )}
+
+        {isCampaignFinale && !isEndless && (
+          <div className="mb-3 p-2.5 rounded border-2 border-amber-400 bg-amber-950/60 text-amber-200 text-left">
+            <div className="font-pixel text-[10px] text-amber-300 flex items-center gap-1.5 mb-1">
+              <Crown className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>{difficulty.toUpperCase()} CAMPAIGN CONQUERED!</span>
+            </div>
+            <p className="font-silkscreen text-[10px] leading-snug text-amber-100">
+              All 20 Sovereign Bosses have fallen before your hunger for power! Claim the next realm or test your mastery in Endless Mode.
+            </p>
           </div>
         )}
 
@@ -111,6 +134,12 @@ export const VictoryBanner: React.FC<VictoryBannerProps> = ({
               +{Math.max(50, (6 - attemptsUsed) * 100)} PTS
             </span>
           </div>
+          {isEndless && (
+            <div className="flex justify-between items-center text-cyan-300 mb-1">
+              <span>Endless Wave Cleared:</span>
+              <span className="font-pixel">WAVE {endlessWave} (+{endlessHeal} HP)</span>
+            </div>
+          )}
           {isBoss && (
             <div className="flex justify-between items-center text-rose-400 mb-1">
               <span>Boss Slayer Multiplier:</span>
@@ -129,7 +158,7 @@ export const VictoryBanner: React.FC<VictoryBannerProps> = ({
           onClick={onContinue}
           className="w-full pixel-btn bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-pixel text-xs py-3 px-4 rounded shadow-pixel cursor-pointer flex items-center justify-center gap-2 border border-emerald-400 active:scale-95 transition-all"
         >
-          <span>RESUME AUTO-JOURNEY</span>
+          <span>{isEndless ? `ADVANCE TO WAVE ${endlessWave + 1}` : 'RESUME AUTO-JOURNEY'}</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>

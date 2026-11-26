@@ -538,3 +538,55 @@
   30% { opacity: 1; transform: translate(var(--fx, 14px), var(--fy, -12px)) scale(1.1) rotate(45deg); }
   100% { opacity: 0; transform: translate(var(--fx2, 26px), var(--fy2, 8px)) scale(0.35) rotate(90deg); }
 }
+
+/* --- Enemy & Boss Magic Spell Cast Animations --- */
+@keyframes enemyCast {
+  0% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(10px, -10px) scale(1.06); }
+  55% { transform: translate(-18px, -4px) scale(1.1); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+@keyframes spellChargePop {
+  0% { opacity: 0; transform: scale(0.35) rotate(0deg); }
+  30% { opacity: 1; transform: scale(1.12) rotate(35deg); }
+  75% { opacity: 0.9; transform: scale(1) rotate(75deg); }
+  100% { opacity: 0; transform: scale(1.3) rotate(110deg); }
+}
+
+@keyframes spellFlyLeft {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.65); }
+  15% { opacity: 1; transform: translate3d(-18px, -4px, 0) scale(1.05); }
+  85% { opacity: 1; transform: translate3d(calc(-1 * min(44vw, 370px)), 4px, 0) scale(1.15); }
+  100% { opacity: 0; transform: translate3d(calc(-1 * min(48vw, 410px)), 6px, 0) scale(1.4); }
+}
+
+/* --- Enemy Weapon Slash & Staff Cast Animations --- */
+@keyframes enemyWeaponSlash {
+  0% { transform: rotate(0deg); }
+  22% { transform: rotate(36deg); }
+  54% { transform: rotate(-66deg); }
+  76% { transform: rotate(-48deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes enemyOffhandSlash {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(26deg); }
+  60% { transform: rotate(-52deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes enemyStaffCast {
+  0% { transform: rotate(0deg) translateY(0); }
+  26% { transform: rotate(22deg) translateY(-3px); }
+  56% { transform: rotate(-42deg) translateY(0); }
+  80% { transform: rotate(-28deg) translateY(0); }
+  100% { transform: rotate(0deg) translateY(0); }
+}
+
+@keyframes clawSlashSwipe {
+  0% { opacity: 0; transform: translateX(6px) scale(0.45) rotate(12deg); }
+  30% { opacity: 1; transform: translateX(-4px) scale(1.08) rotate(-8deg); }
+  100% { opacity: 0; transform: translateX(-16px) scale(1.25) rotate(-18deg); }
+}

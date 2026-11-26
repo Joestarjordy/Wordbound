@@ -192,31 +192,61 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </div>
           </div>
 
-          {/* Unlocked Difficulty Realms Status */}
-          <div className="bg-[#1b1932] border-2 border-[#3b385e] rounded-lg p-3 text-xs">
-            <span className="text-[10px] text-gray-400 font-pixel block mb-2">
-              REALM PROGRESS PER DIFFICULTY:
-            </span>
-            <div className="flex flex-col gap-1.5 text-xs">
-              <div className="flex justify-between items-center bg-slate-900 px-3 py-1.5 rounded">
-                <span className="text-emerald-400 font-pixel text-[10px]">EASY:</span>
-                <span className="text-gray-300">Stage {profile.stageProgress.easy.currentStage}</span>
+          {/* Campaign & Endless Progress */}
+          <div className="bg-[#1b1932] border-2 border-[#3b385e] rounded-lg p-3 text-xs space-y-3">
+            <div>
+              <span className="text-[10px] text-amber-300 font-pixel block mb-2">
+                CAMPAIGN STORY PROGRESS (20 STAGES PER LEVEL):
+              </span>
+              <div className="flex flex-col gap-1.5 text-xs">
+                <div className="flex justify-between items-center bg-slate-900 px-3 py-1.5 rounded">
+                  <span className="text-emerald-400 font-pixel text-[10px]">EASY:</span>
+                  <span className="text-gray-300">
+                    {profile.campaignCompletedStages.easy.length}/20 Cleared · Stage {profile.stageProgress.easy.currentStage}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center bg-slate-900 px-3 py-1.5 rounded">
+                  <span className="text-sky-400 font-pixel text-[10px]">MEDIUM:</span>
+                  <span className="text-gray-300">
+                    {profile.unlockedDifficulties.includes('medium')
+                      ? `${profile.campaignCompletedStages.medium.length}/20 Cleared · Stage ${profile.stageProgress.medium.currentStage}`
+                      : 'Locked (Requires 800 PTS)'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center bg-slate-900 px-3 py-1.5 rounded">
+                  <span className="text-rose-400 font-pixel text-[10px]">HARD:</span>
+                  <span className="text-gray-300">
+                    {profile.unlockedDifficulties.includes('hard')
+                      ? `${profile.campaignCompletedStages.hard.length}/20 Cleared · Stage ${profile.stageProgress.hard.currentStage}`
+                      : 'Locked (Requires 2,500 PTS)'}
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between items-center bg-slate-900 px-3 py-1.5 rounded">
-                <span className="text-sky-400 font-pixel text-[10px]">MEDIUM:</span>
-                <span className="text-gray-300">
-                  {profile.unlockedDifficulties.includes('medium')
-                    ? `Stage ${profile.stageProgress.medium.currentStage}`
-                    : 'Locked (Requires 800 PTS)'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center bg-slate-900 px-3 py-1.5 rounded">
-                <span className="text-rose-400 font-pixel text-[10px]">HARD:</span>
-                <span className="text-gray-300">
-                  {profile.unlockedDifficulties.includes('hard')
-                    ? `Stage ${profile.stageProgress.hard.currentStage}`
-                    : 'Locked (Requires 2,500 PTS)'}
-                </span>
+            </div>
+
+            <div>
+              <span className="text-[10px] text-cyan-300 font-pixel block mb-2">
+                ENDLESS SURVIVAL BEST WAVES:
+              </span>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="bg-slate-900 px-2 py-1.5 rounded border border-emerald-500/30">
+                  <div className="text-[9px] font-pixel text-emerald-400">EASY</div>
+                  <div className="font-pixel text-xs text-white mt-0.5">
+                    W{profile.endlessBestWave.easy}
+                  </div>
+                </div>
+                <div className="bg-slate-900 px-2 py-1.5 rounded border border-sky-500/30">
+                  <div className="text-[9px] font-pixel text-sky-400">MEDIUM</div>
+                  <div className="font-pixel text-xs text-white mt-0.5">
+                    W{profile.endlessBestWave.medium}
+                  </div>
+                </div>
+                <div className="bg-slate-900 px-2 py-1.5 rounded border border-rose-500/30">
+                  <div className="text-[9px] font-pixel text-rose-400">HARD</div>
+                  <div className="font-pixel text-xs text-white mt-0.5">
+                    W{profile.endlessBestWave.hard}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

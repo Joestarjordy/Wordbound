@@ -15,6 +15,16 @@ export const DEFAULT_PROFILE: PlayerProfile = {
     medium: { currentStage: 1, maxStageReached: 1 },
     hard: { currentStage: 1, maxStageReached: 1 },
   },
+  campaignCompletedStages: {
+    easy: [],
+    medium: [],
+    hard: [],
+  },
+  endlessBestWave: {
+    easy: 0,
+    medium: 0,
+    hard: 0,
+  },
   codex: {},
   stats: {
     battlesWon: 0,
@@ -52,6 +62,21 @@ export function loadProfile(): PlayerProfile {
       stageProgress: {
         ...DEFAULT_PROFILE.stageProgress,
         ...(parsed.stageProgress || {}),
+      },
+      campaignCompletedStages: {
+        easy: Array.isArray(parsed.campaignCompletedStages?.easy)
+          ? parsed.campaignCompletedStages.easy
+          : [],
+        medium: Array.isArray(parsed.campaignCompletedStages?.medium)
+          ? parsed.campaignCompletedStages.medium
+          : [],
+        hard: Array.isArray(parsed.campaignCompletedStages?.hard)
+          ? parsed.campaignCompletedStages.hard
+          : [],
+      },
+      endlessBestWave: {
+        ...DEFAULT_PROFILE.endlessBestWave,
+        ...(parsed.endlessBestWave || {}),
       },
       stats: {
         ...DEFAULT_PROFILE.stats,

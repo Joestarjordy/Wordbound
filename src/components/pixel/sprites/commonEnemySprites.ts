@@ -1,6 +1,20 @@
-import { CompiledRect, PixelGrid } from './pixelUtils';
+import { AnimatedSpriteLayers, CompiledRect, PixelGrid } from './pixelUtils';
 
 const OUTLINE = '#0d0a18';
+
+function flattenLayers(layers: AnimatedSpriteLayers): CompiledRect[] {
+  const parts: CompiledRect[] = [];
+  if (layers.weaponBehindBody) {
+    if (layers.offhandWeapon) parts.push(...layers.offhandWeapon);
+    if (layers.weapon) parts.push(...layers.weapon);
+    parts.push(...layers.body);
+  } else {
+    if (layers.offhandWeapon) parts.push(...layers.offhandWeapon);
+    parts.push(...layers.body);
+    if (layers.weapon) parts.push(...layers.weapon);
+  }
+  return parts;
+}
 
 export type CommonSpriteKey =
   | 'goblin'
@@ -17,8 +31,9 @@ export type CommonSpriteKey =
   | 'drake'
   | 'cultist';
 
-function buildGoblin(): CompiledRect[] {
+function buildGoblin(): AnimatedSpriteLayers {
   const g = new PixelGrid(48, 48);
+  const w = new PixelGrid(48, 48);
   // Swept pointed goblin ears (far & near with inner cartilage ridge)
   g.poly([[16, 13], [8, 9], [15, 17]], '#14532d');
   g.poly([[27, 13], [40, 6], [38, 12], [28, 18]], '#16a34a');
@@ -68,22 +83,29 @@ function buildGoblin(): CompiledRect[] {
   g.set(12, 43, '#4ade80');
   g.set(27, 43, '#22c55e');
 
-  // Lead Arm + Leather Wristguard + Jagged Goblin Scimitar (beveled blade + bloodied notch)
+  // Lead Arm + Leather Wristguard + Jagged Goblin Scimitar (weapon layer for slash animation)
   g.line(19, 22, 12, 27, '#22c55e', 2.8);
   g.rect(11, 25, 3, 2, '#78350f');
-  g.oval(11, 27, 2, 2, '#4ade80');
-  g.poly([[10, 26], [6, 19], [4, 10], [7, 7], [10, 11], [8, 19], [12, 25]], '#64748b');
-  g.line(5, 10, 7, 19, '#f1f5f9', 1.2);
-  g.set(7, 8, '#ffffff');
-  g.set(6, 15, '#991b1b');
-  g.line(8, 24, 13, 27, '#d97706', 1.6);
-  g.line(11, 27, 12, 30, '#451a03', 1.6);
+  w.oval(11, 27, 2, 2, '#4ade80');
+  w.poly([[10, 26], [6, 19], [4, 10], [7, 7], [10, 11], [8, 19], [12, 25]], '#64748b');
+  w.line(5, 10, 7, 19, '#f1f5f9', 1.2);
+  w.set(7, 8, '#ffffff');
+  w.set(6, 15, '#991b1b');
+  w.line(8, 24, 13, 27, '#d97706', 1.6);
+  w.line(11, 27, 12, 30, '#451a03', 1.6);
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weapon: w.compile(OUTLINE),
+    weaponPivot: [11, 27],
+    weaponMotion: 'slash',
+  };
 }
 
-function buildBandit(): CompiledRect[] {
+function buildBandit(): AnimatedSpriteLayers {
   const g = new PixelGrid(48, 48);
+  const wLead = new PixelGrid(48, 48);
+  const wOff = new PixelGrid(48, 48);
   // Billowing Weathered Cloak & Crimson Scarf Tails
   g.poly([[27, 17], [38, 22], [43, 35], [36, 40], [29, 36]], '#1e293b');
   g.line(30, 22, 39, 36, '#334155', 1.2);
@@ -124,27 +146,35 @@ function buildBandit(): CompiledRect[] {
   g.rect(29, 38, 6, 6, '#5c2b09');
   g.rect(28, 42, 7, 2, '#451a03');
 
-  // Back Arm + Leather Bracer + Reversed Dirk
+  // Back Arm + Leather Bracer + Reversed Dirk (offhand weapon layer)
   g.line(29, 21, 35, 26, '#334155', 2.6);
   g.rect(34, 24, 3, 3, '#78350f');
-  g.oval(36, 26, 1.8, 1.8, '#e5a97c');
-  g.poly([[36, 25], [43, 17], [39, 27]], '#cbd5e1');
-  g.set(42, 18, '#ffffff');
-  g.rect(35, 24, 2, 3, '#d97706');
+  wOff.oval(36, 26, 1.8, 1.8, '#e5a97c');
+  wOff.poly([[36, 25], [43, 17], [39, 27]], '#cbd5e1');
+  wOff.set(42, 18, '#ffffff');
+  wOff.rect(35, 24, 2, 3, '#d97706');
 
-  // Lead Arm + Leather Bracer + Forward Steel Dagger
+  // Lead Arm + Leather Bracer + Forward Steel Dagger (lead weapon layer)
   g.line(18, 21, 12, 26, '#475569', 2.8);
   g.rect(11, 24, 3, 3, '#78350f');
-  g.oval(11, 26, 1.9, 1.9, '#fbd3b0');
-  g.poly([[10, 25], [2, 20], [3, 23], [9, 27]], '#94a3b8');
-  g.line(3, 21, 9, 25, '#f8fafc', 1.2);
-  g.rect(9, 24, 2, 4, '#d97706');
+  wLead.oval(11, 26, 1.9, 1.9, '#fbd3b0');
+  wLead.poly([[10, 25], [2, 20], [3, 23], [9, 27]], '#94a3b8');
+  wLead.line(3, 21, 9, 25, '#f8fafc', 1.2);
+  wLead.rect(9, 24, 2, 4, '#d97706');
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weapon: wLead.compile(OUTLINE),
+    weaponPivot: [11, 26],
+    offhandWeapon: wOff.compile(OUTLINE),
+    offhandPivot: [36, 26],
+    weaponMotion: 'slash',
+  };
 }
 
-function buildSkeleton(): CompiledRect[] {
+function buildSkeleton(): AnimatedSpriteLayers {
   const g = new PixelGrid(48, 48);
+  const w = new PixelGrid(48, 48);
 
   // Ragged Legionnaire Crimson Cloak billowing behind right shoulder (deep shadow near leg)
   g.poly([[27, 18], [38, 22], [43, 35], [38, 39], [34, 34], [29, 38], [26, 31]], '#450a0a');
@@ -231,24 +261,29 @@ function buildSkeleton(): CompiledRect[] {
   g.poly([[20, 4], [23, 1], [30, 3], [32, 8], [26, 6]], '#991b1b');
   g.line(22, 3, 29, 5, '#dc2626', 1.2);
 
-  // Lead Bony Sword Arm + Rusted Bracer + Chipped Iron Legionnaire Gladius
+  // Lead Bony Sword Arm + Rusted Bracer + Chipped Iron Legionnaire Gladius (weapon layer)
   g.line(16, 21, 11, 26, '#d6d3d1', 2);
   g.oval(13, 24, 1.4, 1.4, '#fef9c3');
   g.rect(9, 25, 3, 2.5, '#475569');
-  g.oval(9, 27, 1.8, 1.8, '#e7e5e4');
+  w.oval(9, 27, 1.8, 1.8, '#e7e5e4');
   // Beveled notched broadsword angled aggressively forward-up
-  g.poly([[9, 26], [3, 11], [1, 8], [5, 10], [11, 25]], '#94a3b8');
-  g.line(2, 9, 9, 25, '#f8fafc', 1.2);
-  g.set(4, 15, OUTLINE); // Battle notch
-  g.set(6, 19, '#991b1b'); // Dry crimson stain
-  g.line(6, 25, 12, 27, '#d97706', 1.6); // Brass crossguard
-  g.line(10, 27, 12, 30, '#451a03', 1.6); // Leather grip
-  g.set(12, 30, '#d97706'); // Pommel
+  w.poly([[9, 26], [3, 11], [1, 8], [5, 10], [11, 25]], '#94a3b8');
+  w.line(2, 9, 9, 25, '#f8fafc', 1.2);
+  w.set(4, 15, OUTLINE); // Battle notch
+  w.set(6, 19, '#991b1b'); // Dry crimson stain
+  w.line(6, 25, 12, 27, '#d97706', 1.6); // Brass crossguard
+  w.line(10, 27, 12, 30, '#451a03', 1.6); // Leather grip
+  w.set(12, 30, '#d97706'); // Pommel
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weapon: w.compile(OUTLINE),
+    weaponPivot: [9, 27],
+    weaponMotion: 'slash',
+  };
 }
 
-function buildSlime(): CompiledRect[] {
+function buildSlime(): AnimatedSpriteLayers {
   const g = new PixelGrid(48, 48);
   // Suspended Toxic Spore/Acid Droplets
   g.oval(10, 12, 1.6, 1.8, '#9333ea', '#e9d5ff', '#581c87', false);
@@ -294,10 +329,14 @@ function buildSlime(): CompiledRect[] {
   g.set(17, 18, '#ffffff');
   g.line(34, 23, 37, 31, '#9333ea', 1.4);
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weaponMotion: 'innate',
+    spellTip: [13, 28],
+  };
 }
 
-function buildWolf(): CompiledRect[] {
+function buildWolf(): AnimatedSpriteLayers {
   const g = new PixelGrid(48, 48);
   // Bushy Tapered Silver-Tipped Tail sweeping right
   g.poly([[34, 24], [43, 15], [45, 19], [41, 27], [34, 28]], '#334155');
@@ -351,10 +390,13 @@ function buildWolf(): CompiledRect[] {
   g.line(10, 15, 14, 16, OUTLINE, 1);
   g.eye(11, 17, '#facc15', '#ffffff');
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weaponMotion: 'claw',
+  };
 }
 
-function buildHarpy(): CompiledRect[] {
+function buildHarpy(): AnimatedSpriteLayers {
   const g = new PixelGrid(48, 48);
   // Swooping Layered Storm-Slate & Cobalt Harpy Wing with Individual Primary Pinions
   g.poly([[23, 21], [35, 8], [45, 7], [42, 17], [36, 25], [27, 27]], '#0f172a');
@@ -403,10 +445,13 @@ function buildHarpy(): CompiledRect[] {
     g.set(tx + 2, 43, '#f8fafc');
   }
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weaponMotion: 'claw',
+  };
 }
 
-function buildGolem(): CompiledRect[] {
+function buildGolem(): AnimatedSpriteLayers {
   const g = new PixelGrid(48, 48);
   // Craggy Back Boulder Arm & Hanging Moss
   g.poly([[32, 16], [40, 15], [42, 23], [34, 24]], '#475569');
@@ -461,20 +506,25 @@ function buildGolem(): CompiledRect[] {
   g.line(4, 31, 10, 31, OUTLINE, 1);
   g.line(4, 34, 10, 34, OUTLINE, 1);
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weaponMotion: 'innate',
+    spellTip: [22, 22],
+  };
 }
 
-function buildMushroom(): CompiledRect[] {
+function buildMushroom(): AnimatedSpriteLayers {
   const g = new PixelGrid(48, 48);
+  const w = new PixelGrid(48, 48);
   // Drifting Toxic Spore Motes
   g.rect(6, 11, 2, 2, '#a3e635', false);
   g.rect(39, 9, 2, 2, '#bef264', false);
   g.rect(42, 18, 1.5, 1.5, '#ecfccb', false);
 
-  // Back Mycelial Arm holding Gnarled Wooden Branch Spore-Club
+  // Back Mycelial Arm holding Gnarled Wooden Branch Spore-Staff (staff layer)
   g.line(30, 27, 38, 28, '#d6d3d1', 2.8);
-  g.line(38, 32, 41, 15, '#5c2b09', 2.8);
-  g.oval(41, 14, 3.2, 3.2, '#4d7c0f', '#84cc16', '#365314');
+  w.line(38, 32, 41, 15, '#5c2b09', 2.8);
+  w.oval(41, 14, 3.2, 3.2, '#4d7c0f', '#84cc16', '#365314');
 
   // Striated Fibrous Fungal Stalk Body + Shredded Mossy Veil Collar
   g.poly([[18, 22], [29, 22], [32, 35], [29, 41], [17, 41], [15, 35]], '#e7e5e4');
@@ -516,11 +566,19 @@ function buildMushroom(): CompiledRect[] {
   g.line(16, 27, 9, 30, '#e7e5e4', 3.2);
   g.oval(8, 30, 2.8, 2.6, '#a8a29e', '#fef3c7', '#57534e');
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weapon: w.compile(OUTLINE),
+    weaponPivot: [38, 28],
+    weaponMotion: 'staff',
+    weaponBehindBody: true,
+    spellTip: [41, 14],
+  };
 }
 
-function buildImp(): CompiledRect[] {
+function buildImp(): AnimatedSpriteLayers {
   const g = new PixelGrid(48, 48);
+  const w = new PixelGrid(48, 48);
   // Whip-like Barbed Spade Tail
   g.line(29, 32, 38, 30, '#9f1239', 2);
   g.line(38, 30, 42, 22, '#be123c', 1.6);
@@ -565,22 +623,28 @@ function buildImp(): CompiledRect[] {
   g.set(18, 18, '#ffffff');
   g.set(22, 18, '#ffffff');
 
-  // Back Arm casting Cinder Fireball + Front Arm thrusting Forged Iron Hell-Trident
+  // Back Arm casting Cinder Fireball + Front Arm thrusting Forged Iron Hell-Trident (weapon layer)
   g.line(28, 21, 34, 24, '#be123c', 2.4);
   g.oval(36, 24, 2.4, 2.4, '#f97316', '#fef08a', '#dc2626', false);
   g.line(18, 22, 11, 26, '#e11d48', 2.6);
-  g.oval(11, 26, 1.8, 1.8, '#f43f5e');
+  w.oval(11, 26, 1.8, 1.8, '#f43f5e');
   // Diagonal Dark-Iron Hell-Trident
-  g.line(13, 39, 7, 12, '#334155', 2);
-  g.line(4, 14, 11, 12, '#64748b', 2);
-  g.line(4, 14, 2, 7, '#f97316', 1.5);
-  g.line(7, 12, 5, 5, '#fef08a', 1.6);
-  g.line(10, 12, 9, 6, '#f97316', 1.5);
+  w.line(13, 39, 7, 12, '#334155', 2);
+  w.line(4, 14, 11, 12, '#64748b', 2);
+  w.line(4, 14, 2, 7, '#f97316', 1.5);
+  w.line(7, 12, 5, 5, '#fef08a', 1.6);
+  w.line(10, 12, 9, 6, '#f97316', 1.5);
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weapon: w.compile(OUTLINE),
+    weaponPivot: [11, 26],
+    weaponMotion: 'staff',
+    spellTip: [6, 8],
+  };
 }
 
-function buildMimic(): CompiledRect[] {
+function buildMimic(): AnimatedSpriteLayers {
   const g = new PixelGrid(48, 48);
   // Gnarled Chitinous Spider-Tendril Legs with Jointed Claws
   g.line(16, 37, 11, 41, '#451a03', 2.6);
@@ -627,11 +691,15 @@ function buildMimic(): CompiledRect[] {
   g.line(16, 25, 6, 29, '#f9a8d4', 1.2);
   g.set(6, 33, '#fbcfe8');
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weaponMotion: 'claw',
+  };
 }
 
-function buildWraith(): CompiledRect[] {
+function buildWraith(): AnimatedSpriteLayers {
   const g = new PixelGrid(48, 48);
+  const w = new PixelGrid(48, 48);
   // Tattered Floating Spectral Shroud + Shredded Wisps
   g.poly([[18, 17], [30, 17], [36, 34], [32, 43], [28, 35], [24, 44], [20, 35], [16, 42], [14, 33]], '#0f766e');
   g.poly([[20, 20], [28, 20], [31, 33], [26, 40], [23, 33], [19, 38]], '#042f2e');
@@ -651,21 +719,27 @@ function buildWraith(): CompiledRect[] {
   g.set(20, 16, '#99f6e4');
   g.set(22, 16, '#99f6e4');
 
-  // Weathered Iron Pauldrons + Gaunt Skeletal Hands gripping Soul Scythe
+  // Weathered Iron Pauldrons + Gaunt Skeletal Hands gripping Soul Scythe (staff/scythe layer)
   g.oval(17, 19, 3.8, 2.5, '#334155', '#64748b', '#0f172a');
   g.oval(29, 19, 3.8, 2.5, '#334155', '#64748b', '#0f172a');
-  g.line(10, 11, 35, 38, '#334155', 2);
-  g.line(10, 11, 34, 38, '#64748b', 1);
-  g.oval(18, 22, 2.2, 2, '#cbd5e1');
-  g.oval(26, 28, 2.2, 2, '#94a3b8');
-  g.poly([[13, 9], [5, 12], [2, 18], [5, 25], [8, 17], [13, 13]], '#14b8a6');
-  g.poly([[12, 10], [6, 13], [4, 19], [6, 23], [7, 16], [12, 12]], '#99f6e4');
-  g.line(4, 14, 3, 21, '#ffffff', 1);
+  w.line(10, 11, 35, 38, '#334155', 2);
+  w.line(10, 11, 34, 38, '#64748b', 1);
+  w.oval(18, 22, 2.2, 2, '#cbd5e1');
+  w.oval(26, 28, 2.2, 2, '#94a3b8');
+  w.poly([[13, 9], [5, 12], [2, 18], [5, 25], [8, 17], [13, 13]], '#14b8a6');
+  w.poly([[12, 10], [6, 13], [4, 19], [6, 23], [7, 16], [12, 12]], '#99f6e4');
+  w.line(4, 14, 3, 21, '#ffffff', 1);
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weapon: w.compile(OUTLINE),
+    weaponPivot: [22, 25],
+    weaponMotion: 'staff',
+    spellTip: [5, 15],
+  };
 }
 
-function buildDrake(): CompiledRect[] {
+function buildDrake(): AnimatedSpriteLayers {
   const g = new PixelGrid(48, 48);
   // Spiked Volcanic Tail
   g.poly([[29, 31], [38, 30], [43, 22], [44, 17], [40, 26], [30, 34]], '#7c2d12');
@@ -710,17 +784,22 @@ function buildDrake(): CompiledRect[] {
   g.poly([[7, 17], [2, 16], [1, 19], [7, 19]], '#f97316', false);
   g.set(3, 17, '#fef08a', false);
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weaponMotion: 'innate',
+    spellTip: [4, 17],
+  };
 }
 
-function buildCultist(): CompiledRect[] {
+function buildCultist(): AnimatedSpriteLayers {
   const g = new PixelGrid(48, 48);
-  // Gnarled Iron-Bound Warlock Staff + Caged Amethyst Focus
-  g.line(38, 13, 38, 44, '#334155', 2);
-  g.line(35, 12, 38, 14, '#d97706', 1.4);
-  g.line(41, 12, 38, 14, '#d97706', 1.4);
-  g.poly([[38, 5], [41, 9], [38, 12], [35, 9]], '#a855f7');
-  g.set(37, 8, '#ffffff');
+  const w = new PixelGrid(48, 48);
+  // Gnarled Iron-Bound Warlock Staff + Caged Amethyst Focus (staff layer)
+  w.line(38, 13, 38, 44, '#334155', 2);
+  w.line(35, 12, 38, 14, '#d97706', 1.4);
+  w.line(41, 12, 38, 14, '#d97706', 1.4);
+  w.poly([[38, 5], [41, 9], [38, 12], [35, 9]], '#a855f7');
+  w.set(37, 8, '#ffffff');
 
   // 3/4 Draped Dark-Plum & Charcoal Cultist Robes with Asymmetric Tabard (NO flat yellow +!)
   g.poly([[17, 18], [30, 18], [35, 42], [13, 42]], '#2e1065');
@@ -753,17 +832,24 @@ function buildCultist(): CompiledRect[] {
 
   // Sleeves & Gauntleted Hands gripping Staff + Channeling Arcane Void Orb
   g.line(29, 20, 36, 24, '#581c87', 3);
-  g.oval(37, 24, 1.8, 1.8, '#94a3b8');
+  w.oval(37, 24, 1.8, 1.8, '#94a3b8');
   g.line(16, 20, 10, 23, '#581c87', 3.2);
   g.oval(9, 23, 2, 2, '#cbd5e1');
   g.oval(6, 18, 3.4, 3.4, '#a855f7', '#faf5ff', '#581c87', false);
   g.set(2, 14, '#e879f9', false);
   g.set(10, 14, '#e879f9', false);
 
-  return g.compile(OUTLINE);
+  return {
+    body: g.compile(OUTLINE),
+    weapon: w.compile(OUTLINE),
+    weaponPivot: [37, 24],
+    weaponMotion: 'staff',
+    weaponBehindBody: true,
+    spellTip: [38, 8],
+  };
 }
 
-export const COMMON_ENEMY_SPRITES: Record<CommonSpriteKey, CompiledRect[]> = {
+export const COMMON_ENEMY_LAYERS: Record<CommonSpriteKey, AnimatedSpriteLayers> = {
   goblin: buildGoblin(),
   bandit: buildBandit(),
   skeleton: buildSkeleton(),
@@ -777,4 +863,20 @@ export const COMMON_ENEMY_SPRITES: Record<CommonSpriteKey, CompiledRect[]> = {
   wraith: buildWraith(),
   drake: buildDrake(),
   cultist: buildCultist(),
+};
+
+export const COMMON_ENEMY_SPRITES: Record<CommonSpriteKey, CompiledRect[]> = {
+  goblin: flattenLayers(COMMON_ENEMY_LAYERS.goblin),
+  bandit: flattenLayers(COMMON_ENEMY_LAYERS.bandit),
+  skeleton: flattenLayers(COMMON_ENEMY_LAYERS.skeleton),
+  slime: flattenLayers(COMMON_ENEMY_LAYERS.slime),
+  wolf: flattenLayers(COMMON_ENEMY_LAYERS.wolf),
+  harpy: flattenLayers(COMMON_ENEMY_LAYERS.harpy),
+  golem: flattenLayers(COMMON_ENEMY_LAYERS.golem),
+  mushroom: flattenLayers(COMMON_ENEMY_LAYERS.mushroom),
+  imp: flattenLayers(COMMON_ENEMY_LAYERS.imp),
+  mimic: flattenLayers(COMMON_ENEMY_LAYERS.mimic),
+  wraith: flattenLayers(COMMON_ENEMY_LAYERS.wraith),
+  drake: flattenLayers(COMMON_ENEMY_LAYERS.drake),
+  cultist: flattenLayers(COMMON_ENEMY_LAYERS.cultist),
 };
