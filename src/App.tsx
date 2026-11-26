@@ -17,6 +17,8 @@ import { getEnemySpell } from './data/enemySpells';
 import {
   addWordToCodex,
   checkAndUnlockDifficulties,
+  getHighestUnlockedCampaignStage,
+  isCampaignStageUnlocked,
   loadProfile,
   saveProfile,
 } from './utils/storage';
@@ -27,6 +29,11 @@ import {
   isValidGuess,
 } from './data/words';
 import { CAMPAIGN_TOTAL_STAGES, STAGES_BY_DIFFICULTY } from './data/stages';
+import {
+  StoryChapter,
+  getCampaignStoryChapter,
+  getLatestStoryChapterForStage,
+} from './data/campaignStory';
 import { generateEndlessEnemy, getEndlessBackdropStage } from './data/endless';
 import { soundEngine } from './utils/sound';
 import { Navbar } from './components/layout/Navbar';
@@ -38,6 +45,7 @@ import { DefeatModal } from './components/combat/DefeatModal';
 import { CodexModal } from './components/modals/CodexModal';
 import { StageSelectModal } from './components/modals/StageSelectModal';
 import { ProfileModal } from './components/modals/ProfileModal';
+import { StoryCutsceneModal } from './components/modals/StoryCutsceneModal';
 import { IntroScreen } from './components/layout/IntroScreen';
 import { MainMenu } from './components/layout/MainMenu';
 import { CharacterSelectScreen } from './components/layout/CharacterSelectScreen';
@@ -103,6 +111,7 @@ export const App: React.FC = () => {
   const [isCodexOpen, setIsCodexOpen] = useState(false);
   const [isStageSelectOpen, setIsStageSelectOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [activeStoryChapter, setActiveStoryChapter] = useState<StoryChapter | null>(null);
 
   // --- Audio State ---
   const [bgmMuted, setBgmMuted] = useState(profile.soundSettings.bgmMuted);
@@ -305,9 +314,78 @@ export const App: React.FC = () => {
     ]
   );
 
+  // --- Campaign Story Cutscene Trigger & Completion ---
+  useEffect(() => {
+    if (
+      screen !== 'game' ||
+      gameMode !== 'campaign' ||
+      inCombat ||
+      isVictoryOpen ||
+      isDefeatOpen ||
+      isStageSelectOpen ||
+      isCodexOpen ||
+      isProfileOpen ||
+      activeStoryChapter !== null ||
+      currentEncounterIndex !== 0
+    ) {
+      return;
+    }
+
+    const chapter = getLatestStoryChapterForStage(currentDiff, currentStageId, profile.gender);
+    if (chapter && !profile.seenStoryIds.includes(chapter.id)) {
+      setActiveStoryChapter(chapter);
+    }
+  }, [
+    activeStoryChapter,
+    currentDiff,
+    currentEncounterIndex,
+    currentStageId,
+    gameMode,
+    inCombat,
+    isCodexOpen,
+    isDefeatOpen,
+    isProfileOpen,
+    isStageSelectOpen,
+    isVictoryOpen,
+    profile.gender,
+    profile.seenStoryIds,
+    screen,
+  ]);
+
+  const handleCompleteStoryChapter = useCallback(() => {
+    const completedId = activeStoryChapter?.id;
+    setActiveStoryChapter(null);
+    if (completedId) {
+      setProfile((currProf) => {
+        if (currProf.seenStoryIds.includes(completedId)) return currProf;
+        const updated: PlayerProfile = {
+          ...currProf,
+          seenStoryIds: [...currProf.seenStoryIds, completedId],
+        };
+        saveProfile(updated);
+        return updated;
+      });
+    }
+  }, [activeStoryChapter]);
+
+  const handleOpenCurrentStory = useCallback(() => {
+    const chapter = getLatestStoryChapterForStage(currentDiff, currentStageId, profile.gender);
+    if (chapter) {
+      setActiveStoryChapter(chapter);
+    }
+  }, [currentDiff, currentStageId, profile.gender]);
+
   // --- Auto-Walking AFK Loop ---
   useEffect(() => {
-    if (screen !== 'game' || inCombat || isVictoryOpen || isDefeatOpen) return;
+    if (
+      screen !== 'game' ||
+      inCombat ||
+      isVictoryOpen ||
+      isDefeatOpen ||
+      activeStoryChapter !== null
+    ) {
+      return;
+    }
 
     setKnightState('walk');
     soundEngine.startBgm('explore');
@@ -330,6 +408,7 @@ export const App: React.FC = () => {
       clearInterval(stepInterval);
     };
   }, [
+    activeStoryChapter,
     inCombat,
     isVictoryOpen,
     isDefeatOpen,
@@ -620,6 +699,16 @@ export const App: React.FC = () => {
             ...withCodex,
             totalPoints,
             stats: updatedStats,
+            stageProgress: {
+              ...withCodex.stageProgress,
+              [currentDiff]: {
+                ...withCodex.stageProgress[currentDiff],
+                maxStageReached: Math.max(
+                  withCodex.stageProgress[currentDiff]?.maxStageReached || 1,
+                  getHighestUnlockedCampaignStage(nextCompletedForDiff)
+                ),
+              },
+            },
             campaignCompletedStages: {
               ...withCodex.campaignCompletedStages,
               [currentDiff]: nextCompletedForDiff,
@@ -823,6 +912,7 @@ export const App: React.FC = () => {
 
   // --- Resume Journey after Victory ---
   const handleVictoryContinue = useCallback(() => {
+    const wasCampaignFinale = justCompletedCampaignTier;
     clearCombatTimers();
     setCutInState(null);
     setIsVictoryOpen(false);
@@ -866,10 +956,18 @@ export const App: React.FC = () => {
       });
 
       setCurrentEncounterIndex(0);
+
+      if (wasCampaignFinale || !hasNextStage) {
+        const epilogue = getCampaignStoryChapter(currentDiff, 'epilogue', profile.gender);
+        if (epilogue) {
+          setActiveStoryChapter(epilogue);
+        }
+      }
+
       spawnFloatingText(
         hasNextStage
-          ? `STAGE ${currentStageId} CONQUERED! ENTERING STAGE ${targetStageId}!`
-          : `ALL ${CAMPAIGN_TOTAL_STAGES} BOSSES SLAIN! CAMPAIGN MASTERED!`,
+          ? `STAGE ${currentStageId} SAVED! ENTERING STAGE ${targetStageId}!`
+          : `ALL ${CAMPAIGN_TOTAL_STAGES} GUARDIANS FREED! REALM SAVED!`,
         '#10b981',
         true
       );
@@ -885,6 +983,8 @@ export const App: React.FC = () => {
     endlessEnemy.spriteType,
     endlessWave,
     gameMode,
+    justCompletedCampaignTier,
+    profile.gender,
     spawnFloatingText,
     stagesForDiff,
   ]);
@@ -932,6 +1032,11 @@ export const App: React.FC = () => {
   // --- Campaign Difficulty & Stage Selection ---
   const handleSelectDifficultyAndStage = useCallback(
     (diff: DifficultyLevel, stageId: number) => {
+      if (!isCampaignStageUnlocked(profile, diff, stageId)) {
+        spawnFloatingText(`CLEAR STAGE ${stageId - 1} FIRST TO UNLOCK!`, '#f43f5e', true);
+        return;
+      }
+
       clearCombatTimers();
       setCutInState(null);
       setGameMode('campaign');
@@ -945,6 +1050,7 @@ export const App: React.FC = () => {
       setEnemyState('idle');
 
       setProfile((curr) => {
+        if (!isCampaignStageUnlocked(curr, diff, stageId)) return curr;
         const updated = {
           ...curr,
           currentDifficulty: diff,
@@ -962,7 +1068,7 @@ export const App: React.FC = () => {
 
       spawnFloatingText(`CAMPAIGN: ${diff.toUpperCase()} STAGE ${stageId}!`, '#f59e0b', true);
     },
-    [clearCombatTimers, spawnFloatingText]
+    [clearCombatTimers, profile, spawnFloatingText]
   );
 
   // --- Endless Mode Difficulty Selection ---
@@ -1016,6 +1122,7 @@ export const App: React.FC = () => {
     setEnemyState('idle');
 
     if (gameMode === 'endless') {
+      setActiveStoryChapter(null);
       setEndlessWave(1);
       setEndlessKnightHp(200);
       setEndlessEnemy(generateEndlessEnemy(1, profile.currentDifficulty));
@@ -1033,10 +1140,27 @@ export const App: React.FC = () => {
         });
       }
       setCurrentEncounterIndex(0);
+
+      const targetStageId = profile.stageProgress[safeDiff]?.currentStage || 1;
+      const chapter = getLatestStoryChapterForStage(safeDiff, targetStageId, profile.gender);
+      if (chapter && !profile.seenStoryIds.includes(chapter.id)) {
+        setActiveStoryChapter(chapter);
+        setKnightState('idle');
+      } else {
+        setActiveStoryChapter(null);
+      }
     }
 
     setScreen('game');
-  }, [clearCombatTimers, gameMode, profile.currentDifficulty, profile.unlockedDifficulties]);
+  }, [
+    clearCombatTimers,
+    gameMode,
+    profile.currentDifficulty,
+    profile.gender,
+    profile.seenStoryIds,
+    profile.stageProgress,
+    profile.unlockedDifficulties,
+  ]);
 
   // --- Return to Main Menu from Gameplay ---
   const handleReturnToMenu = useCallback(() => {
@@ -1047,6 +1171,7 @@ export const App: React.FC = () => {
     setCombatState(null);
     setIsVictoryOpen(false);
     setIsDefeatOpen(false);
+    setActiveStoryChapter(null);
     setScreen('menu');
   }, [clearCombatTimers]);
 
@@ -1073,6 +1198,7 @@ export const App: React.FC = () => {
     setEndlessEnemy(generateEndlessEnemy(1, fresh.currentDifficulty));
     setLastEndlessHeal(0);
     setJustCompletedCampaignTier(false);
+    setActiveStoryChapter(null);
     setExplorationProgress(0);
     setInCombat(false);
     setCombatState(null);
@@ -1266,12 +1392,19 @@ export const App: React.FC = () => {
               onOpenCodex={() => setIsCodexOpen(true)}
               onOpenStageSelect={() => setIsStageSelectOpen(true)}
               onOpenProfile={() => setIsProfileOpen(true)}
+              onOpenStory={gameMode === 'campaign' ? handleOpenCurrentStory : undefined}
             />
           )}
         </section>
       </main>
 
       {/* Modals & Dialogs */}
+      <StoryCutsceneModal
+        chapter={activeStoryChapter}
+        knightGender={profile.gender}
+        onComplete={handleCompleteStoryChapter}
+      />
+
       {isVictoryOpen && combatState && (
         <VictoryBanner
           isOpen={isVictoryOpen}

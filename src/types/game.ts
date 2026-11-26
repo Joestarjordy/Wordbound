@@ -46,6 +46,7 @@ export interface PlayerProfile {
   stageProgress: Record<DifficultyLevel, { currentStage: number; maxStageReached: number }>;
   campaignCompletedStages: Record<DifficultyLevel, number[]>;
   endlessBestWave: Record<DifficultyLevel, number>;
+  seenStoryIds: string[];
   codex: Record<string, CodexEntry>;
   stats: PlayerStats;
   soundSettings: {

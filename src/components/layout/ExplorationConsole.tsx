@@ -4,7 +4,7 @@ import { KNIGHT_SKILLS } from '../../data/knightSkills';
 import { CAMPAIGN_TOTAL_STAGES } from '../../data/stages';
 import { PixelKnight } from '../pixel/PixelKnight';
 import { PixelEnemy } from '../pixel/PixelEnemy';
-import { Map, BookOpen, Flame, Compass, Eye, Shield } from 'lucide-react';
+import { Map, BookOpen, Flame, Compass, Eye, Shield, ScrollText } from 'lucide-react';
 import { soundEngine } from '../../utils/sound';
 
 interface ExplorationConsoleProps {
@@ -21,6 +21,7 @@ interface ExplorationConsoleProps {
   onOpenCodex: () => void;
   onOpenStageSelect: () => void;
   onOpenProfile: () => void;
+  onOpenStory?: () => void;
 }
 
 export const ExplorationConsole: React.FC<ExplorationConsoleProps> = ({
@@ -37,6 +38,7 @@ export const ExplorationConsole: React.FC<ExplorationConsoleProps> = ({
   onOpenCodex,
   onOpenStageSelect,
   onOpenProfile,
+  onOpenStory,
 }) => {
   const isEndless = gameMode === 'endless';
   const isBoss = isEndless
@@ -82,10 +84,31 @@ export const ExplorationConsole: React.FC<ExplorationConsoleProps> = ({
                 : '⚔️ ENEMY INCOMING'}
             </span>
           </div>
-          {!isEndless && stage.storyBeat && (
-            <p className="text-[9px] text-amber-200/80 font-silkscreen mt-1 truncate" title={stage.storyBeat}>
-              {stage.storyBeat}
-            </p>
+          {!isEndless && (stage.storyBeat || onOpenStory) && (
+            <div className="flex items-center justify-between gap-2 mt-1">
+              {stage.storyBeat && (
+                <p
+                  className="text-[9px] text-amber-200/80 font-silkscreen truncate"
+                  title={stage.storyBeat}
+                >
+                  {stage.storyBeat}
+                </p>
+              )}
+              {onOpenStory && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playKeyClick();
+                    onOpenStory();
+                  }}
+                  className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-500/50 font-pixel text-[8px] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                  title="Replay the current Act's heroic story cutscene"
+                >
+                  <ScrollText className="w-2.5 h-2.5" />
+                  <span>STORY</span>
+                </button>
+              )}
+            </div>
           )}
         </div>
 

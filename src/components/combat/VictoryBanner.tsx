@@ -84,10 +84,10 @@ export const VictoryBanner: React.FC<VictoryBannerProps> = ({
           <div className="mb-3 p-2.5 rounded border-2 border-amber-400 bg-amber-950/60 text-amber-200 text-left">
             <div className="font-pixel text-[10px] text-amber-300 flex items-center gap-1.5 mb-1">
               <Crown className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>{difficulty.toUpperCase()} CAMPAIGN CONQUERED!</span>
+              <span>{difficulty.toUpperCase()} REALM SAVED!</span>
             </div>
             <p className="font-silkscreen text-[10px] leading-snug text-amber-100">
-              All 20 Sovereign Bosses have fallen before your hunger for power! Claim the next realm or test your mastery in Endless Mode.
+              You defeated all 20 bosses and reclaimed the Realm Crown! Continue to witness the heroic epilogue and restore Aethelgard.
             </p>
           </div>
         )}
@@ -158,7 +158,13 @@ export const VictoryBanner: React.FC<VictoryBannerProps> = ({
           onClick={onContinue}
           className="w-full pixel-btn bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-pixel text-xs py-3 px-4 rounded shadow-pixel cursor-pointer flex items-center justify-center gap-2 border border-emerald-400 active:scale-95 transition-all"
         >
-          <span>{isEndless ? `ADVANCE TO WAVE ${endlessWave + 1}` : 'RESUME AUTO-JOURNEY'}</span>
+          <span>
+            {isEndless
+              ? `ADVANCE TO WAVE ${endlessWave + 1}`
+              : isCampaignFinale
+              ? 'VIEW REALM EPILOGUE'
+              : 'RESUME AUTO-JOURNEY'}
+          </span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>

@@ -279,6 +279,11 @@
   100% { transform: translate3d(-50%, 0, 0); }
 }
 
+@keyframes parallaxMidFar {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
 @keyframes parallaxMid {
   0% { transform: translate3d(0, 0, 0); }
   100% { transform: translate3d(-50%, 0, 0); }

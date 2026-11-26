@@ -77,10 +77,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 </span>
               </div>
               <p className="font-silkscreen text-[10px] sm:text-[11px] text-amber-100/90 leading-snug">
-                Story of Dominion: Hungry for ultimate power, conquer all 20 stages and defeat every Sovereign Boss across Easy, Medium &amp; Hard.
+                Heroic Story: Save Aethelgard from Archon Vexalor! Journey through 20 stages across Easy, Medium &amp; Hard to restore the Grand Lexicon.
               </p>
               <div className="mt-2 text-[9px] font-pixel text-orange-300 flex items-center justify-between">
-                <span>TOTAL BOSSES SLAIN: {totalBossesCleared}/60</span>
+                <span>GUARDIANS FREED: {totalBossesCleared}/60</span>
                 <span className="text-amber-200">PLAY STORY →</span>
               </div>
             </button>
@@ -148,7 +148,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </div>
 
           <p className="font-silkscreen text-[10px] text-gray-500 mt-5">
-            Crack words. Defeat bosses. Claim absolute power.
+            Crack words. Save the realm. Restore the Grand Lexicon.
           </p>
         </div>
       </div>

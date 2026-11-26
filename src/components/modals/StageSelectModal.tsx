@@ -16,6 +16,7 @@ import {
   Infinity as InfinityIcon,
 } from 'lucide-react';
 import { soundEngine } from '../../utils/sound';
+import { isCampaignStageUnlocked } from '../../utils/storage';
 
 interface StageSelectModalProps {
   isOpen: boolean;
@@ -63,24 +64,24 @@ export const StageSelectModal: React.FC<StageSelectModalProps> = ({
   const tierMetaMap = {
     easy: {
       label: 'EASY',
-      title: 'EASY REALM — COMMON VOCABULARY',
-      desc: 'Common high-frequency English words. Great for building speed, streaks, and claiming the First Crown.',
+      title: 'BOOK I: EASY REALM — COMMON VOCABULARY',
+      desc: 'Common high-frequency English words. Defend the Frontier villages and recover the Crown of Dawn.',
       color: 'border-emerald-500/60 bg-emerald-950/20 text-emerald-400',
       badge: 'bg-emerald-900/60 text-emerald-300 border-emerald-500',
       tabActive: 'bg-emerald-900/80 border-emerald-400 text-emerald-200',
     },
     medium: {
       label: 'MEDIUM',
-      title: 'MEDIUM REALM — ACADEMIC VOCABULARY',
-      desc: 'Intermediate and academic vocabulary. Fiercer monsters and cunning bosses guard the Second Crown.',
+      title: 'BOOK II: MEDIUM REALM — ACADEMIC VOCABULARY',
+      desc: 'Intermediate and academic vocabulary. Cross the cursed Heartlands to reclaim the Crown of Wisdom.',
       color: 'border-sky-500/60 bg-sky-950/20 text-sky-400',
       badge: 'bg-sky-900/60 text-sky-300 border-sky-500',
       tabActive: 'bg-sky-900/80 border-sky-400 text-sky-200',
     },
     hard: {
       label: 'HARD',
-      title: 'HARD REALM — OBSCURE & ARCANE VOCABULARY',
-      desc: 'Advanced, archaic, and arcane vocabulary. Conquer all 20 bosses to claim eternal dominion!',
+      title: 'BOOK III: HARD REALM — ARCANE VOCABULARY',
+      desc: 'Advanced and arcane vocabulary. Storm the Astral Citadel, defeat Archon Vexalor, and save Aethelgard!',
       color: 'border-rose-500/60 bg-rose-950/20 text-rose-400',
       badge: 'bg-rose-900/60 text-rose-300 border-rose-500',
       tabActive: 'bg-rose-900/80 border-rose-400 text-rose-200',
@@ -213,7 +214,10 @@ export const StageSelectModal: React.FC<StageSelectModalProps> = ({
                     </div>
                     <p className="text-xs text-gray-300 mt-0.5">{activeMeta.desc}</p>
                     <p className="text-[10px] font-pixel text-amber-300 mt-1.5">
-                      STORY GOAL: DEFEAT ALL {CAMPAIGN_TOTAL_STAGES} BOSSES ({activeCleared.size}/{CAMPAIGN_TOTAL_STAGES} CONQUERED)
+                      HEROIC QUEST: FREE ALL {CAMPAIGN_TOTAL_STAGES} GUARDIANS ({activeCleared.size}/{CAMPAIGN_TOTAL_STAGES} SAVED)
+                    </p>
+                    <p className="text-[10px] text-gray-400 font-silkscreen mt-0.5">
+                      Defeat each stage&apos;s boss to unlock the next stage.
                     </p>
                   </div>
 
@@ -234,7 +238,13 @@ export const StageSelectModal: React.FC<StageSelectModalProps> = ({
                 {activeTierUnlocked ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                     {activeStages.map((stg) => {
+                      const isStageUnlocked = isCampaignStageUnlocked(
+                        profile,
+                        selectedTier,
+                        stg.id
+                      );
                       const isCurrent =
+                        isStageUnlocked &&
                         gameMode === 'campaign' &&
                         currentDiff === selectedTier &&
                         activeCurrentStageId === stg.id;
@@ -245,21 +255,41 @@ export const StageSelectModal: React.FC<StageSelectModalProps> = ({
                         <button
                           key={stg.id}
                           type="button"
-                          onClick={() => handleSelectCampaignStage(selectedTier, stg.id)}
-                          className={`text-left p-2.5 rounded border transition-all cursor-pointer flex flex-col justify-between ${
-                            isCurrent
-                              ? 'bg-amber-500/20 border-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.3)]'
+                          disabled={!isStageUnlocked}
+                          onClick={() => {
+                            if (isStageUnlocked) {
+                              handleSelectCampaignStage(selectedTier, stg.id);
+                            }
+                          }}
+                          title={
+                            isStageUnlocked
+                              ? `Play Stage ${stg.id}: ${stg.name}`
+                              : `Locked — Finish Stage ${stg.id - 1} first to unlock`
+                          }
+                          className={`text-left p-2.5 rounded border transition-all flex flex-col justify-between ${
+                            !isStageUnlocked
+                              ? 'bg-slate-950/75 border-slate-800/80 text-gray-500 cursor-not-allowed opacity-70'
+                              : isCurrent
+                              ? 'bg-amber-500/20 border-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.3)] cursor-pointer'
                               : isCleared
-                              ? 'bg-emerald-950/35 border-emerald-500/50 hover:border-emerald-400'
-                              : 'bg-[#18162e] border-slate-700 hover:border-slate-500'
+                              ? 'bg-emerald-950/35 border-emerald-500/50 hover:border-emerald-400 cursor-pointer'
+                              : 'bg-[#18162e] border-slate-700 hover:border-slate-500 cursor-pointer'
                           }`}
                         >
                           <div>
                             <div className="flex items-center justify-between text-xs mb-1">
-                              <span className="font-pixel text-[9px] text-amber-300">
+                              <span
+                                className={`font-pixel text-[9px] ${
+                                  isStageUnlocked ? 'text-amber-300' : 'text-gray-500'
+                                }`}
+                              >
                                 STAGE {stg.id}/{CAMPAIGN_TOTAL_STAGES}
                               </span>
-                              {isCurrent ? (
+                              {!isStageUnlocked ? (
+                                <span className="text-[8px] font-pixel text-amber-400/80 flex items-center gap-0.5">
+                                  <Lock className="w-3 h-3" /> LOCKED
+                                </span>
+                              ) : isCurrent ? (
                                 <span className="text-[8px] font-pixel text-amber-300">HERE</span>
                               ) : isCleared ? (
                                 <span className="text-[8px] font-pixel text-emerald-400 flex items-center gap-0.5">
@@ -267,27 +297,50 @@ export const StageSelectModal: React.FC<StageSelectModalProps> = ({
                                 </span>
                               ) : null}
                             </div>
-                            <h4 className="font-pixel text-[11px] text-white mb-0.5 truncate">
+                            <h4
+                              className={`font-pixel text-[11px] mb-0.5 truncate ${
+                                isStageUnlocked ? 'text-white' : 'text-gray-400'
+                              }`}
+                            >
                               {stg.name}
                             </h4>
                             {stg.chapter && (
-                              <div className="text-[9px] text-sky-300/80 font-silkscreen mb-1">
+                              <div
+                                className={`text-[9px] font-silkscreen mb-1 ${
+                                  isStageUnlocked ? 'text-sky-300/80' : 'text-gray-600'
+                                }`}
+                              >
                                 {stg.chapter}
                               </div>
                             )}
-                            <p className="text-[10px] text-gray-400 line-clamp-2">
+                            <p
+                              className={`text-[10px] line-clamp-2 ${
+                                isStageUnlocked ? 'text-gray-400' : 'text-gray-500'
+                              }`}
+                            >
                               {stg.description}
                             </p>
                           </div>
 
                           <div className="mt-2 pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-gray-400">
-                            <span className="flex items-center gap-1 text-rose-400 truncate pr-1">
+                            <span
+                              className={`flex items-center gap-1 truncate pr-1 ${
+                                isStageUnlocked ? 'text-rose-400' : 'text-gray-600'
+                              }`}
+                            >
                               <Swords className="w-3 h-3 shrink-0" />
                               <span className="truncate">{bossEnemy.name}</span>
                             </span>
-                            <span className="text-amber-400 flex items-center shrink-0">
-                              PLAY <ChevronRight className="w-3 h-3 ml-0.5" />
-                            </span>
+                            {isStageUnlocked ? (
+                              <span className="text-amber-400 flex items-center shrink-0">
+                                PLAY <ChevronRight className="w-3 h-3 ml-0.5" />
+                              </span>
+                            ) : (
+                              <span className="text-gray-500 flex items-center gap-0.5 font-pixel text-[8px] shrink-0">
+                                <Lock className="w-2.5 h-2.5" />
+                                STG {stg.id - 1}
+                              </span>
+                            )}
                           </div>
                         </button>
                       );

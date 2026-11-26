@@ -156,7 +156,7 @@ export const CharacterSelectScreen: React.FC<CharacterSelectScreenProps> = ({
               >
                 <Swords className="w-3.5 h-3.5 shrink-0" />
                 {isCampaign
-                  ? 'STORY MISSION: CLAIM ALL BOSSES’ POWER'
+                  ? 'HEROIC QUEST: SAVE AETHELGARD'
                   : 'ENDLESS SURVIVAL: MASTER VOCABULARY'}
               </span>
               <span className="font-pixel text-[8px] px-2 py-0.5 rounded bg-black/50 text-gray-200 border border-slate-600">
@@ -167,7 +167,7 @@ export const CharacterSelectScreen: React.FC<CharacterSelectScreenProps> = ({
             </div>
             <p className="font-silkscreen text-[10px] sm:text-[11px] text-gray-300 leading-snug">
               {isCampaign
-                ? `Driven by an insatiable hunger for power, march through all ${CAMPAIGN_TOTAL_STAGES} stages and conquer every Sovereign Boss.`
+                ? `Archon Vexalor shattered the Grand Lexicon! Journey through all ${CAMPAIGN_TOTAL_STAGES} stages, free the corrupted guardians, and save the world from darkness.`
                 : 'No stage limits—crack words continuously to heal, build streaks, and survive infinite waves!'}
             </p>
           </div>
